@@ -59,9 +59,7 @@ class BrowseController extends Notifier<BrowseState> {
   BrowseState build() {
     // Re-fetch whenever the media type changes (route change).
     Future.microtask(load);
-    return BrowseState(
-      query: BrowseQuery(type: mediaType),
-    );
+    return BrowseState(query: BrowseQuery(type: mediaType));
   }
 
   Future<void> load() async {
@@ -170,5 +168,5 @@ class BrowseController extends Notifier<BrowseState> {
 
 final browseControllerProvider =
     NotifierProvider.family<BrowseController, BrowseState, MediaType>(
-  BrowseController.new,
-);
+      BrowseController.new,
+    );

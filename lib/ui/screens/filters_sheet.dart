@@ -232,10 +232,7 @@ class _Dropdown<T> extends StatelessWidget {
         items: [
           DropdownMenuItem<T>(value: null, child: Text('Any $label')),
           for (final item in items)
-            DropdownMenuItem<T>(
-              value: item,
-              child: Text(itemLabel(item)),
-            ),
+            DropdownMenuItem<T>(value: item, child: Text(itemLabel(item))),
         ],
         onChanged: onChanged,
       ),

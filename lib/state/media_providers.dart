@@ -16,14 +16,12 @@ final mediaRepositoryProvider = Provider<MediaRepository>((ref) {
 });
 
 /// Home page rails.
-enum MediaRail {
-  trendingAnime,
-  trendingManga,
-  popularThisSeason,
-}
+enum MediaRail { trendingAnime, trendingManga, popularThisSeason }
 
-final mediaRailProvider =
-    FutureProvider.family<MediaPage, MediaRail>((ref, rail) async {
+final mediaRailProvider = FutureProvider.family<MediaPage, MediaRail>((
+  ref,
+  rail,
+) async {
   final repo = ref.watch(mediaRepositoryProvider);
   switch (rail) {
     case MediaRail.trendingAnime:
@@ -31,20 +29,33 @@ final mediaRailProvider =
     case MediaRail.trendingManga:
       return repo.trending(type: MediaType.manga, perPage: 12);
     case MediaRail.popularThisSeason:
+      final now = DateTime.now();
       return repo.browse(
         BrowseQuery(
           type: MediaType.anime,
           sort: MediaSort.popularity,
-          seasonYear: DateTime.now().year,
+          // AniList needs a season together with seasonYear for anime.
+          season: currentSeason(now.month),
+          seasonYear: now.year,
           perPage: 12,
         ),
       );
   }
 });
 
+/// Anime season for a calendar month number.
+MediaSeason currentSeason(int month) {
+  if (month <= 2 || month == 12) return MediaSeason.winter;
+  if (month <= 5) return MediaSeason.spring;
+  if (month <= 8) return MediaSeason.summer;
+  return MediaSeason.fall;
+}
+
 /// Media detail for a title id.
-final mediaDetailProvider =
-    FutureProvider.family.autoDispose<Media, int>((ref, id) async {
+final mediaDetailProvider = FutureProvider.family.autoDispose<Media, int>((
+  ref,
+  id,
+) async {
   final repo = ref.watch(mediaRepositoryProvider);
   return repo.mediaDetail(id);
 });

@@ -33,7 +33,10 @@ void main() {
     test('timeAgo reports human-friendly durations', () {
       final now = DateTime.now();
       expect(Formatters.timeAgo(now), 'just now');
-      expect(Formatters.timeAgo(now.subtract(const Duration(hours: 3))), '3h ago');
+      expect(
+        Formatters.timeAgo(now.subtract(const Duration(hours: 3))),
+        '3h ago',
+      );
       expect(
         Formatters.timeAgo(now.subtract(const Duration(days: 2))),
         '2d ago',
@@ -42,9 +45,15 @@ void main() {
 
     test('timeUntil reports future durations', () {
       final soon = DateTime.now().add(const Duration(minutes: 5));
-      expect(Formatters.timeUntil(soon.millisecondsSinceEpoch ~/ 1000), 'in 5 mins');
+      expect(
+        Formatters.timeUntil(soon.millisecondsSinceEpoch ~/ 1000),
+        'in 5 mins',
+      );
       final later = DateTime.now().add(const Duration(days: 2));
-      expect(Formatters.timeUntil(later.millisecondsSinceEpoch ~/ 1000), 'in 2 days');
+      expect(
+        Formatters.timeUntil(later.millisecondsSinceEpoch ~/ 1000),
+        'in 2 days',
+      );
       expect(Formatters.timeUntil(null), '');
     });
   });

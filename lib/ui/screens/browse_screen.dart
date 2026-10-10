@@ -58,7 +58,9 @@ class BrowseScreen extends ConsumerWidget {
       builder: (_) => FilterSheet(initial: query),
     );
     if (result != null) {
-      await ref.read(browseControllerProvider(type).notifier).applyFilters(
+      await ref
+          .read(browseControllerProvider(type).notifier)
+          .applyFilters(
             genre: result.genre,
             status: result.status,
             format: result.format,
@@ -75,13 +77,13 @@ class BrowseScreen extends ConsumerWidget {
       LoadStatus.initial => const LoadState(),
       LoadStatus.loading => const LoadState(status: LoadStatus.loading),
       LoadStatus.error => LoadState(
-          status: LoadStatus.error,
-          errorMessage: state.errorMessage,
-        ),
+        status: LoadStatus.error,
+        errorMessage: state.errorMessage,
+      ),
       LoadStatus.success => LoadState(
-          status: LoadStatus.success,
-          data: state.items,
-        ),
+        status: LoadStatus.success,
+        data: state.items,
+      ),
     };
   }
 }
@@ -102,6 +104,52 @@ class _Toolbar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isManga = state.query.type == MediaType.manga;
+
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          isManga ? 'Manga' : 'Anime',
+          style: theme.textTheme.headlineMedium,
+        ),
+        Text(
+          'Discover ${isManga ? 'series and chapters' : 'shows and movies'}',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+
+    final controls = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DropdownButton<MediaSort>(
+          value: state.query.sort,
+          borderRadius: BorderRadius.circular(Tokens.radiusSm),
+          underline: const SizedBox.shrink(),
+          items: [
+            for (final sort in MediaSort.values)
+              DropdownMenuItem(value: sort, child: Text(sort.label)),
+          ],
+          onChanged: (sort) {
+            if (sort != null) {
+              ref
+                  .read(browseControllerProvider(state.query.type).notifier)
+                  .setSort(sort);
+            }
+          },
+        ),
+        const SizedBox(width: Tokens.space8),
+        OutlinedButton.icon(
+          onPressed: onFilterTap,
+          icon: const Icon(Icons.tune, size: 18),
+          label: Text(state.query.hasFilters ? 'Filters •' : 'Filters'),
+        ),
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Tokens.space16,
@@ -109,44 +157,20 @@ class _Toolbar extends ConsumerWidget {
         Tokens.space16,
         Tokens.space8,
       ),
-      child: Wrap(
-        spacing: Tokens.space8,
-        runSpacing: Tokens.space8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Text(
-            isManga ? 'Manga' : 'Anime',
-            style: theme.textTheme.headlineMedium,
-          ),
-          Text(
-            'Discover ${isManga ? 'series and chapters' : 'shows and movies'}',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const Spacer(),
-          DropdownButton<MediaSort>(
-            value: state.query.sort,
-            borderRadius: BorderRadius.circular(Tokens.radiusSm),
-            underline: const SizedBox.shrink(),
-            items: [
-              for (final sort in MediaSort.values)
-                DropdownMenuItem(value: sort, child: Text(sort.label)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 640) {
+            return Row(children: [titleBlock, const Spacer(), controls]);
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              titleBlock,
+              const SizedBox(height: Tokens.space8),
+              Align(alignment: Alignment.centerRight, child: controls),
             ],
-            onChanged: (sort) {
-              if (sort != null) {
-                ref
-                    .read(browseControllerProvider(state.query.type).notifier)
-                    .setSort(sort);
-              }
-            },
-          ),
-          OutlinedButton.icon(
-            onPressed: onFilterTap,
-            icon: const Icon(Icons.tune, size: 18),
-            label: Text(state.query.hasFilters ? 'Filters •' : 'Filters'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -214,10 +238,7 @@ class _ActiveFilters extends ConsumerWidget {
     if (chips.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-      child: Wrap(
-        spacing: Tokens.space8,
-        children: chips,
-      ),
+      child: Wrap(spacing: Tokens.space8, children: chips),
     );
   }
 }

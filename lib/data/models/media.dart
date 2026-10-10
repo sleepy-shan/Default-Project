@@ -232,10 +232,7 @@ class MediaTag {
 
 /// Next episode that will air, shown on cards and detail pages.
 class NextAiringEpisode {
-  const NextAiringEpisode({
-    required this.episode,
-    required this.airingAt,
-  });
+  const NextAiringEpisode({required this.episode, required this.airingAt});
 
   final int episode;
 
@@ -245,10 +242,7 @@ class NextAiringEpisode {
 
 /// A relation edge to another title (sequel, prequel, side story, ...).
 class MediaEdge {
-  const MediaEdge({
-    required this.relationType,
-    required this.media,
-  });
+  const MediaEdge({required this.relationType, required this.media});
 
   final String relationType;
   final Media media;
@@ -266,6 +260,9 @@ class MediaPage {
   final int page;
   final bool hasNextPage;
 
-  static const MediaPage empty =
-      MediaPage(items: [], page: 1, hasNextPage: false);
+  static const MediaPage empty = MediaPage(
+    items: [],
+    page: 1,
+    hasNextPage: false,
+  );
 }

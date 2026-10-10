@@ -87,10 +87,8 @@ class _RailSection extends ConsumerWidget {
               itemCount: 5,
               separatorBuilder: (context, index) =>
                   const SizedBox(width: Tokens.space12),
-              itemBuilder: (context, index) => const SizedBox(
-                width: 148,
-                child: SkeletonTile(height: 232),
-              ),
+              itemBuilder: (context, index) =>
+                  const SizedBox(width: 148, child: SkeletonTile(height: 232)),
             ),
             error: (error, stack) => _RailError(
               onRetry: () => ref.invalidate(mediaRailProvider(rail)),
@@ -157,7 +155,8 @@ class _ContinueRail extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
         itemCount: entries.length,
-        separatorBuilder: (context, index) => const SizedBox(width: Tokens.space12),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: Tokens.space12),
         itemBuilder: (context, index) {
           final entry = entries[index];
           return _ContinueCard(entry: entry);
@@ -192,15 +191,13 @@ class _ContinueCard extends ConsumerWidget {
                   height: 84,
                   child: entry.coverUrl == null || entry.coverUrl!.isEmpty
                       ? ColoredBox(
-                          color:
-                              theme.disabledColor.withValues(alpha: 0.12),
+                          color: theme.disabledColor.withValues(alpha: 0.12),
                         )
                       : Image.network(
                           entry.coverUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stack) => ColoredBox(
-                            color:
-                                theme.disabledColor.withValues(alpha: 0.12),
+                            color: theme.disabledColor.withValues(alpha: 0.12),
                           ),
                         ),
                 ),
@@ -232,8 +229,9 @@ class _ContinueCard extends ConsumerWidget {
                         value: fraction,
                         minHeight: 4,
                         backgroundColor: theme.dividerColor,
-                        valueColor:
-                            AlwaysStoppedAnimation(theme.colorScheme.primary),
+                        valueColor: AlwaysStoppedAnimation(
+                          theme.colorScheme.primary,
+                        ),
                       ),
                     ],
                   ],

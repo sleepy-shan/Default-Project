@@ -23,11 +23,7 @@ class LoadState<T> {
   bool get isSuccess => status == LoadStatus.success;
   bool get isError => status == LoadStatus.error;
 
-  LoadState<T> copyWith({
-    LoadStatus? status,
-    T? data,
-    String? errorMessage,
-  }) {
+  LoadState<T> copyWith({LoadStatus? status, T? data, String? errorMessage}) {
     return LoadState<T>(
       status: status ?? this.status,
       data: data ?? this.data,
@@ -35,7 +31,8 @@ class LoadState<T> {
     );
   }
 
-  static LoadState<T> loading<T>() => const LoadState(status: LoadStatus.loading);
+  static LoadState<T> loading<T>() =>
+      const LoadState(status: LoadStatus.loading);
 
   static LoadState<T> success<T>(T data) =>
       LoadState(status: LoadStatus.success, data: data);

@@ -34,12 +34,12 @@ enum ListStatus {
 
   /// Wire value used when persisting to the backend / localStorage.
   String get wire => switch (this) {
-        ListStatus.watching => 'CURRENT',
-        ListStatus.planning => 'PLANNING',
-        ListStatus.completed => 'COMPLETED',
-        ListStatus.paused => 'PAUSED',
-        ListStatus.dropped => 'DROPPED',
-      };
+    ListStatus.watching => 'CURRENT',
+    ListStatus.planning => 'PLANNING',
+    ListStatus.completed => 'COMPLETED',
+    ListStatus.paused => 'PAUSED',
+    ListStatus.dropped => 'DROPPED',
+  };
 }
 
 /// A user's tracking entry for one title.
@@ -120,15 +120,12 @@ class MediaEntry {
       type: type ?? this.type,
       title: title ?? this.title,
       coverUrl: coverUrl ?? this.coverUrl,
-      totalUnits:
-          totalUnits == _unset ? this.totalUnits : totalUnits as int?,
+      totalUnits: totalUnits == _unset ? this.totalUnits : totalUnits as int?,
       status: status ?? this.status,
       progress: progress ?? this.progress,
       score: score == _unset ? this.score : score as int?,
       notes: notes ?? this.notes,
-      startedAt: startedAt == _unset
-          ? this.startedAt
-          : startedAt as DateTime?,
+      startedAt: startedAt == _unset ? this.startedAt : startedAt as DateTime?,
       completedAt: completedAt == _unset
           ? this.completedAt
           : completedAt as DateTime?,
@@ -138,20 +135,20 @@ class MediaEntry {
   }
 
   Map<String, dynamic> toJson() => {
-        'media_id': mediaId,
-        'media_type': type.anilistValue,
-        'title': title,
-        'cover_url': coverUrl,
-        'total_units': totalUnits,
-        'status': status.wire,
-        'progress': progress,
-        'score': score,
-        'notes': notes,
-        'started_at': startedAt?.toIso8601String(),
-        'completed_at': completedAt?.toIso8601String(),
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-      };
+    'media_id': mediaId,
+    'media_type': type.anilistValue,
+    'title': title,
+    'cover_url': coverUrl,
+    'total_units': totalUnits,
+    'status': status.wire,
+    'progress': progress,
+    'score': score,
+    'notes': notes,
+    'started_at': startedAt?.toIso8601String(),
+    'completed_at': completedAt?.toIso8601String(),
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
 
   static MediaEntry fromJson(Map<String, dynamic> json) {
     final type = MediaType.fromWire(json['media_type'] as String?);
@@ -169,10 +166,10 @@ class MediaEntry {
       completedAt: DateTime.tryParse(json['completed_at'] as String? ?? ''),
       createdAt:
           DateTime.tryParse(json['created_at'] as String? ?? '') ??
-              DateTime.now(),
+          DateTime.now(),
       updatedAt:
           DateTime.tryParse(json['updated_at'] as String? ?? '') ??
-              DateTime.now(),
+          DateTime.now(),
     );
   }
 }

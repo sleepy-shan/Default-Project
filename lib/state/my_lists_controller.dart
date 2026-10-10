@@ -20,12 +20,12 @@ enum ListsFilter {
   final String label;
 
   static ListsFilter fromStatus(ListStatus status) => switch (status) {
-        ListStatus.watching => ListsFilter.watching,
-        ListStatus.planning => ListsFilter.planning,
-        ListStatus.completed => ListsFilter.completed,
-        ListStatus.paused => ListsFilter.paused,
-        ListStatus.dropped => ListsFilter.dropped,
-      };
+    ListStatus.watching => ListsFilter.watching,
+    ListStatus.planning => ListsFilter.planning,
+    ListStatus.completed => ListsFilter.completed,
+    ListStatus.paused => ListsFilter.paused,
+    ListStatus.dropped => ListsFilter.dropped,
+  };
 }
 
 /// Sort orders offered by the "My Lists" screen.
@@ -59,15 +59,19 @@ class MyListsState {
   List<MediaEntry> get visibleEntries {
     final filtered = switch (filter) {
       ListsFilter.all => entries,
-      ListsFilter.watching =>
-        entries.where((e) => e.status == ListStatus.watching),
-      ListsFilter.planning =>
-        entries.where((e) => e.status == ListStatus.planning),
-      ListsFilter.completed =>
-        entries.where((e) => e.status == ListStatus.completed),
+      ListsFilter.watching => entries.where(
+        (e) => e.status == ListStatus.watching,
+      ),
+      ListsFilter.planning => entries.where(
+        (e) => e.status == ListStatus.planning,
+      ),
+      ListsFilter.completed => entries.where(
+        (e) => e.status == ListStatus.completed,
+      ),
       ListsFilter.paused => entries.where((e) => e.status == ListStatus.paused),
-      ListsFilter.dropped =>
-        entries.where((e) => e.status == ListStatus.dropped),
+      ListsFilter.dropped => entries.where(
+        (e) => e.status == ListStatus.dropped,
+      ),
     };
     final list = [...filtered];
     switch (sort) {
@@ -90,11 +94,10 @@ class MyListsState {
   }
 
   int countFor(ListsFilter target) => switch (target) {
-        ListsFilter.all => entries.length,
-        _ => entries
-            .where((e) => ListsFilter.fromStatus(e.status) == target)
-            .length,
-      };
+    ListsFilter.all => entries.length,
+    _ =>
+      entries.where((e) => ListsFilter.fromStatus(e.status) == target).length,
+  };
 
   MediaEntry? entryFor(int mediaId) {
     for (final entry in entries) {
@@ -159,8 +162,7 @@ class MyListsController extends Notifier<MyListsState> {
     }
   }
 
-  void setFilter(ListsFilter filter) =>
-      state = state.copyWith(filter: filter);
+  void setFilter(ListsFilter filter) => state = state.copyWith(filter: filter);
 
   void setSort(ListsSort sort) => state = state.copyWith(sort: sort);
 
@@ -207,9 +209,10 @@ final myListsControllerProvider =
 /// "Continue watching / reading" rail on the home dashboard.
 final continueWatchingProvider = Provider<List<MediaEntry>>((ref) {
   final state = ref.watch(myListsControllerProvider);
-  final entries = state.entries
-      .where((e) => e.status == ListStatus.watching && e.progress > 0)
-      .toList()
-    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  final entries =
+      state.entries
+          .where((e) => e.status == ListStatus.watching && e.progress > 0)
+          .toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   return entries;
 });

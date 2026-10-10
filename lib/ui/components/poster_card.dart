@@ -24,9 +24,7 @@ class PosterCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: _PosterImage(media: media),
-            ),
+            Expanded(child: _PosterImage(media: media)),
             const SizedBox(height: Tokens.space8),
             Text(
               media.title,
@@ -51,7 +49,9 @@ class PosterCard extends StatelessWidget {
 
   static String _subtitle(Media media) {
     final bits = <String>[
-      media.format != MediaFormat.unknown ? media.format.label : media.type.label,
+      media.format != MediaFormat.unknown
+          ? media.format.label
+          : media.type.label,
       if (media.seasonYear != null) '${media.seasonYear}',
     ];
     return bits.join(' • ');

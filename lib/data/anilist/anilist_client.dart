@@ -15,7 +15,7 @@ import '../../core/utils/app_exception.dart';
 /// surfaces HTTP 429 as a friendly [AppException] with a retry action.
 class AniListClient {
   AniListClient({http.Client? httpClient, this.maxRetries = 2})
-      : _http = httpClient ?? http.Client();
+    : _http = httpClient ?? http.Client();
 
   final http.Client _http;
   final int maxRetries;
@@ -36,7 +36,8 @@ class AniListClient {
       try {
         return await _attempt(document, variables);
       } on AppException catch (error) {
-        final retryable = error.kind == ErrorKind.network ||
+        final retryable =
+            error.kind == ErrorKind.network ||
             error.kind == ErrorKind.rateLimit ||
             error.kind == ErrorKind.server;
         if (!retryable || attempt > maxRetries) rethrow;

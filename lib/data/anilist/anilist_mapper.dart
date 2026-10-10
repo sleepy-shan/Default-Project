@@ -9,10 +9,7 @@ abstract final class AniListMapper {
   /// Parses a list of media nodes from a `Page.media` payload.
   static List<Media> mediaList(Object? raw) {
     if (raw is! List) return const [];
-    return raw
-        .map(_media)
-        .whereType<Media>()
-        .toList(growable: false);
+    return raw.map(_media).whereType<Media>().toList(growable: false);
   }
 
   /// Parses a single `Media` object (detail page).
@@ -25,7 +22,8 @@ abstract final class AniListMapper {
     if (id == null) return null;
 
     final type = MediaType.fromWire(json['type'] as String?);
-    final title = (json['title'] as Map?)?.map(
+    final title =
+        (json['title'] as Map?)?.map(
           (key, value) => MapEntry(key.toString(), value),
         ) ??
         const {};
@@ -37,7 +35,8 @@ abstract final class AniListMapper {
       coverUrl: _coverUrl(json['coverImage'] as Map?),
       bannerUrl: (json['bannerImage'] as String?)?.trim(),
       description: json['description'] as String?,
-      genres: (json['genres'] as List?)
+      genres:
+          (json['genres'] as List?)
               ?.map((e) => e.toString())
               .toList(growable: false) ??
           const [],
@@ -60,9 +59,7 @@ abstract final class AniListMapper {
       startDate: _fuzzyDate(json['startDate'] as Map?),
       endDate: _fuzzyDate(json['endDate'] as Map?),
       siteUrl: json['siteUrl'] as String?,
-      nextAiringEpisode: _airing(
-        json['nextAiringEpisode'] as Map?,
-      ),
+      nextAiringEpisode: _airing(json['nextAiringEpisode'] as Map?),
       relations: _relations(json['relations'] as Map?),
       recommendations: _recommendations(json['recommendations'] as Map?),
     );
@@ -92,10 +89,12 @@ abstract final class AniListMapper {
     if (tags == null) return const [];
     return tags
         .whereType<Map>()
-        .map((tag) => MediaTag(
-              name: (tag['name'] as String?)?.trim() ?? '',
-              rank: (tag['rank'] as num?)?.toInt() ?? 0,
-            ))
+        .map(
+          (tag) => MediaTag(
+            name: (tag['name'] as String?)?.trim() ?? '',
+            rank: (tag['rank'] as num?)?.toInt() ?? 0,
+          ),
+        )
         .where((tag) => tag.name.isNotEmpty)
         .toList(growable: false);
   }
@@ -175,24 +174,28 @@ abstract final class AniListMapper {
 
   static List<AiringScheduleItem> airingSchedule(Object? raw) {
     if (raw is! List) return const [];
-    return raw.whereType<Map>().map((item) {
-      final media = item['media'];
-      final mediaMap = media is Map
-          ? media.map((key, value) => MapEntry(key.toString(), value))
-          : const {};
-      return AiringScheduleItem(
-        id: (item['id'] as num?)?.toInt() ?? 0,
-        mediaId: (mediaMap['id'] as num?)?.toInt() ?? 0,
-        mediaType: MediaType.fromWire(mediaMap['type'] as String?),
-        title: AniListMapper._title(
-          (mediaMap['title'] as Map?)
-                  ?.map((key, value) => MapEntry(key.toString(), value)) ??
-              const {},
-        ),
-        coverUrl: AniListMapper._coverUrl(mediaMap['coverImage'] as Map?),
-        episode: (item['episode'] as num?)?.toInt() ?? 0,
-        airingAt: (item['airingAt'] as num?)?.toInt() ?? 0,
-      );
-    }).toList(growable: false);
+    return raw
+        .whereType<Map>()
+        .map((item) {
+          final media = item['media'];
+          final mediaMap = media is Map
+              ? media.map((key, value) => MapEntry(key.toString(), value))
+              : const {};
+          return AiringScheduleItem(
+            id: (item['id'] as num?)?.toInt() ?? 0,
+            mediaId: (mediaMap['id'] as num?)?.toInt() ?? 0,
+            mediaType: MediaType.fromWire(mediaMap['type'] as String?),
+            title: AniListMapper._title(
+              (mediaMap['title'] as Map?)?.map(
+                    (key, value) => MapEntry(key.toString(), value),
+                  ) ??
+                  const {},
+            ),
+            coverUrl: AniListMapper._coverUrl(mediaMap['coverImage'] as Map?),
+            episode: (item['episode'] as num?)?.toInt() ?? 0,
+            airingAt: (item['airingAt'] as num?)?.toInt() ?? 0,
+          );
+        })
+        .toList(growable: false);
   }
 }

@@ -36,8 +36,7 @@ const String kMediaListSelection = '''
 ''';
 
 /// Extra fields only needed on the detail page.
-const String kMediaDetailSelection =
-    '''$kMediaListSelection
+const String kMediaDetailSelection = '''$kMediaListSelection
   tags { name rank isMediaSpoiler }
   relations { edges { relationType(version: 2) node { id type
       title { romaji english native }
@@ -98,7 +97,8 @@ query (
 }''';
 
 /// Single media lookup used by the detail screen.
-const String kMediaDetailQuery = '''
+const String kMediaDetailQuery =
+    '''
 query (\$id: Int) {
   Media(id: \$id) { $kMediaDetailSelection }
 }''';

@@ -57,18 +57,9 @@ void main() {
     });
 
     test('labels differ for anime vs manga', () {
-      expect(
-        ListStatus.watching.labelFor(MediaType.anime),
-        'Watching',
-      );
-      expect(
-        ListStatus.watching.labelFor(MediaType.manga),
-        'Reading',
-      );
-      expect(
-        ListStatus.completed.labelFor(MediaType.manga),
-        'Completed',
-      );
+      expect(ListStatus.watching.labelFor(MediaType.anime), 'Watching');
+      expect(ListStatus.watching.labelFor(MediaType.manga), 'Reading');
+      expect(ListStatus.completed.labelFor(MediaType.manga), 'Completed');
     });
   });
 

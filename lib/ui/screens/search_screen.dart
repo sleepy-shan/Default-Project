@@ -29,9 +29,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialQuery.trim().isNotEmpty) {
         // Run the search that came from the URL after the first frame.
-        ref
-            .read(searchControllerProvider.notifier)
-            .submit(widget.initialQuery);
+        ref.read(searchControllerProvider.notifier).submit(widget.initialQuery);
       } else {
         // Focus the field so desktop users can type immediately.
         _focusNode.requestFocus();
@@ -103,14 +101,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ChoiceChip(
                 label: const Text('Anime'),
                 selected: state.typeFilter == MediaType.anime,
-                onSelected: (_) =>
-                    controller.setTypeFilter(MediaType.anime),
+                onSelected: (_) => controller.setTypeFilter(MediaType.anime),
               ),
               ChoiceChip(
                 label: const Text('Manga'),
                 selected: state.typeFilter == MediaType.manga,
-                onSelected: (_) =>
-                    controller.setTypeFilter(MediaType.manga),
+                onSelected: (_) => controller.setTypeFilter(MediaType.manga),
               ),
             ],
           ),
@@ -123,9 +119,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             emptyTitle: state.hasSearched ? 'No results' : 'Start typing',
             emptyMessage: state.hasSearched
                 ? 'Nothing matched "${state.query.trim()}". '
-                    'Try a different spelling or fewer words.'
+                      'Try a different spelling or fewer words.'
                 : 'Search by title, genre keywords, or romanization — '
-                    'for example "frieren" or "mecha".',
+                      'for example "frieren" or "mecha".',
             emptyIcon: state.hasSearched ? Icons.search_off : Icons.search,
             loading: const LoadingPosterGrid(),
             builder: (context, results) => MediaGrid(items: results),
@@ -140,13 +136,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       LoadStatus.initial => const LoadState(),
       LoadStatus.loading => const LoadState(status: LoadStatus.loading),
       LoadStatus.error => LoadState(
-          status: LoadStatus.error,
-          errorMessage: state.errorMessage,
-        ),
+        status: LoadStatus.error,
+        errorMessage: state.errorMessage,
+      ),
       LoadStatus.success => LoadState(
-          status: LoadStatus.success,
-          data: state.results,
-        ),
+        status: LoadStatus.success,
+        data: state.results,
+      ),
     };
   }
 }

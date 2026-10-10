@@ -24,10 +24,10 @@ class SettingsController extends Notifier<ThemePreference> {
   }
 
   ThemeMode get themeMode => switch (state) {
-        ThemePreference.system => ThemeMode.system,
-        ThemePreference.light => ThemeMode.light,
-        ThemePreference.dark => ThemeMode.dark,
-      };
+    ThemePreference.system => ThemeMode.system,
+    ThemePreference.light => ThemeMode.light,
+    ThemePreference.dark => ThemeMode.dark,
+  };
 
   Future<void> setThemePreference(ThemePreference preference) async {
     state = preference;
@@ -39,7 +39,9 @@ class SettingsController extends Notifier<ThemePreference> {
 }
 
 final settingsControllerProvider =
-    NotifierProvider<SettingsController, ThemePreference>(SettingsController.new);
+    NotifierProvider<SettingsController, ThemePreference>(
+      SettingsController.new,
+    );
 
 /// Convenience provider for widgets that only need the resolved ThemeMode.
 final themeModeProvider = Provider<ThemeMode>((ref) {

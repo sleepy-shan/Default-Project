@@ -100,10 +100,7 @@ class _DetailBody extends ConsumerWidget {
                     const SizedBox(width: Tokens.space24),
                     Expanded(
                       flex: 2,
-                      child: _TrackingPanel(
-                        media: media,
-                        entry: entry,
-                      ),
+                      child: _TrackingPanel(media: media, entry: entry),
                     ),
                   ],
                 )
@@ -151,7 +148,8 @@ class _Hero extends StatelessWidget {
             height: 220,
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stack) => const SizedBox(height: 220),
+            errorBuilder: (context, error, stack) =>
+                const SizedBox(height: 220),
           )
         else
           const SizedBox(height: 120),
@@ -282,8 +280,7 @@ class _Overview extends StatelessWidget {
             : '${media.seasonYear}',
       if (media.studios.isNotEmpty) 'Studio': media.studios.join(', '),
       if (media.source != null) 'Source': media.source!,
-      if (media.startDate != null)
-        'Aired': Formatters.date(media.startDate),
+      if (media.startDate != null) 'Aired': Formatters.date(media.startDate),
       if (media.popularity != null)
         'Popularity': Formatters.compactNumber(media.popularity),
       if (media.favourites != null)
@@ -291,7 +288,7 @@ class _Overview extends StatelessWidget {
       if (media.nextAiringEpisode != null)
         'Next episode':
             'EP ${media.nextAiringEpisode!.episode} • '
-                '${Formatters.timeUntil(media.nextAiringEpisode!.airingAt)}',
+            '${Formatters.timeUntil(media.nextAiringEpisode!.airingAt)}',
     };
 
     return Column(
@@ -419,7 +416,7 @@ class _TrackingPanel extends ConsumerWidget {
             Text(
               entry == null
                   ? 'Save this ${media.type.label.toLowerCase()} to your list to track '
-                      'progress and score.'
+                        'progress and score.'
                   : 'On your list • updated ${Formatters.timeAgo(entry.updatedAt)}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -478,8 +475,7 @@ class _TrackingPanel extends ConsumerWidget {
                 children: [
                   ScoreSelector(
                     score: entry.score,
-                    onChanged: (score) =>
-                        controller.setScore(media.id, score),
+                    onChanged: (score) => controller.setScore(media.id, score),
                   ),
                   const Spacer(),
                   TextButton.icon(
@@ -540,10 +536,7 @@ class _RelationStrip extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 148,
-                    child: MediaRailCard(media: edge.media),
-                  ),
+                  SizedBox(width: 148, child: MediaRailCard(media: edge.media)),
                   const SizedBox(height: Tokens.space4),
                   SizedBox(
                     width: 148,

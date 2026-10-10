@@ -39,10 +39,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(events.first, isEmpty);
 
-      await repo.addOrUpdate(
-        media: _media(),
-        status: ListStatus.planning,
-      );
+      await repo.addOrUpdate(media: _media(), status: ListStatus.planning);
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
       expect(events.last, hasLength(1));

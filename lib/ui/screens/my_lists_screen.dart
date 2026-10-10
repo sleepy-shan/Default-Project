@@ -74,9 +74,7 @@ class MyListsScreen extends ConsumerWidget {
             children: [
               for (final filter in ListsFilter.values)
                 ChoiceChip(
-                  label: Text(
-                    '${filter.label} (${state.countFor(filter)})',
-                  ),
+                  label: Text('${filter.label} (${state.countFor(filter)})'),
                   selected: state.filter == filter,
                   onSelected: (_) => controller.setFilter(filter),
                 ),
@@ -86,20 +84,21 @@ class MyListsScreen extends ConsumerWidget {
         Expanded(
           child: switch (state.status) {
             LoadStatus.loading => const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: CircularProgressIndicator(),
+            ),
             LoadStatus.error => _ListError(
-                message: state.errorMessage ?? 'Could not load your list.',
-                onRetry: controller.refresh,
-              ),
-            LoadStatus.initial =>
-              const Center(child: CircularProgressIndicator()),
-            LoadStatus.success when entries.isEmpty => state.filter ==
-                    ListsFilter.all
-                ? _EmptyList()
-                : EmptyFilter(
-                    onClear: () => controller.setFilter(ListsFilter.all),
-                  ),
+              message: state.errorMessage ?? 'Could not load your list.',
+              onRetry: controller.refresh,
+            ),
+            LoadStatus.initial => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            LoadStatus.success when entries.isEmpty =>
+              state.filter == ListsFilter.all
+                  ? _EmptyList()
+                  : EmptyFilter(
+                      onClear: () => controller.setFilter(ListsFilter.all),
+                    ),
             LoadStatus.success => MyListBody(entries: entries),
           },
         ),
@@ -231,14 +230,8 @@ class EntryRow extends ConsumerWidget {
                 }
               },
               itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: 'restart',
-                  child: Text('Reset progress'),
-                ),
-                PopupMenuItem(
-                  value: 'complete',
-                  child: Text('Mark completed'),
-                ),
+                PopupMenuItem(value: 'restart', child: Text('Reset progress')),
+                PopupMenuItem(value: 'complete', child: Text('Mark completed')),
                 PopupMenuItem(value: 'remove', child: Text('Remove')),
               ],
             ),
@@ -310,7 +303,8 @@ class _EmptyList extends StatelessWidget {
     return EmptyView(
       icon: Icons.format_list_bulleted_outlined,
       title: 'Your list is empty',
-      message: 'Browse anime or manga and tap "Add to my list" '
+      message:
+          'Browse anime or manga and tap "Add to my list" '
           'to start tracking progress.',
       actionLabel: 'Browse anime',
       onAction: () => context.go(Routes.anime),

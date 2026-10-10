@@ -13,8 +13,11 @@ class AuthUser {
   final String? email;
   final bool isAnonymous;
 
-  static const AuthUser guest =
-      AuthUser(id: 'local', email: null, isAnonymous: true);
+  static const AuthUser guest = AuthUser(
+    id: 'local',
+    email: null,
+    isAnonymous: true,
+  );
 }
 
 /// Authentication contract. The local implementation represents the

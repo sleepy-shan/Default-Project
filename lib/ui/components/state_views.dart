@@ -32,14 +32,14 @@ class StateView<T> extends StatelessWidget {
       LoadStatus.initial || LoadStatus.loading =>
         loading ?? const Center(child: CircularProgressIndicator()),
       LoadStatus.error => ErrorView(
-          message: state.errorMessage ?? 'Something went wrong.',
-          onRetry: onRetry,
-        ),
+        message: state.errorMessage ?? 'Something went wrong.',
+        onRetry: onRetry,
+      ),
       LoadStatus.success when state.data == null => EmptyView(
-          message: emptyMessage,
-          title: emptyTitle,
-          icon: emptyIcon,
-        ),
+        message: emptyMessage,
+        title: emptyTitle,
+        icon: emptyIcon,
+      ),
       LoadStatus.success => builder(context, state.data as T),
     };
   }
@@ -143,10 +143,7 @@ class EmptyView extends StatelessWidget {
               ),
               if (actionLabel != null && onAction != null) ...[
                 const SizedBox(height: Tokens.space16),
-                ElevatedButton(
-                  onPressed: onAction,
-                  child: Text(actionLabel!),
-                ),
+                ElevatedButton(onPressed: onAction, child: Text(actionLabel!)),
               ],
             ],
           ),

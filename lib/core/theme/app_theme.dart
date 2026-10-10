@@ -13,22 +13,24 @@ abstract final class AppTheme {
 
   static ThemeData _base(Brightness brightness) {
     final bool isDark = brightness == Brightness.dark;
-    final ColorScheme scheme = ColorScheme.fromSeed(
-      seedColor: Tokens.brand,
-      brightness: brightness,
-    ).copyWith(
-      primary: isDark ? Tokens.brandDark : Tokens.brand,
-      secondary: Tokens.accent,
-      surface: isDark ? const Color(0xFF12141C) : const Color(0xFFF7F7FB),
-      error: Tokens.danger,
-    );
+    final ColorScheme scheme =
+        ColorScheme.fromSeed(
+          seedColor: Tokens.brand,
+          brightness: brightness,
+        ).copyWith(
+          primary: isDark ? Tokens.brandDark : Tokens.brand,
+          secondary: Tokens.accent,
+          surface: isDark ? const Color(0xFF12141C) : const Color(0xFFF7F7FB),
+          error: Tokens.danger,
+        );
 
-    final Color background =
-        isDark ? const Color(0xFF0B0D14) : const Color(0xFFF2F3F8);
-    final Color card =
-        isDark ? const Color(0xFF181B26) : Colors.white;
-    final Color border =
-        isDark ? const Color(0xFF2A2E3D) : const Color(0xFFE3E4EC);
+    final Color background = isDark
+        ? const Color(0xFF0B0D14)
+        : const Color(0xFFF2F3F8);
+    final Color card = isDark ? const Color(0xFF181B26) : Colors.white;
+    final Color border = isDark
+        ? const Color(0xFF2A2E3D)
+        : const Color(0xFFE3E4EC);
 
     final textTheme = Typography.material2021().black;
     final baseTextTheme = isDark
@@ -162,7 +164,9 @@ abstract final class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? const Color(0xFF2A2E3D) : const Color(0xFF1F2230),
+        backgroundColor: isDark
+            ? const Color(0xFF2A2E3D)
+            : const Color(0xFF1F2230),
         contentTextStyle: TypeScale.bodyLarge.copyWith(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Tokens.radiusSm),

@@ -46,8 +46,7 @@ class SupabaseTrackingRepository implements TrackingRepository {
     final userId = _userId;
     final now = DateTime.now();
     final total = media.totalUnits;
-    final safeProgress =
-        total == null ? progress : progress.clamp(0, total);
+    final safeProgress = total == null ? progress : progress.clamp(0, total);
 
     final existing = await _db
         .from(table)
@@ -71,8 +70,9 @@ class SupabaseTrackingRepository implements TrackingRepository {
         'score': score,
         'notes': notes,
         'started_at': now.toIso8601String(),
-        'completed_at':
-            status == ListStatus.completed ? now.toIso8601String() : null,
+        'completed_at': status == ListStatus.completed
+            ? now.toIso8601String()
+            : null,
         'created_at': now.toIso8601String(),
         'updated_at': now.toIso8601String(),
       };
@@ -80,7 +80,9 @@ class SupabaseTrackingRepository implements TrackingRepository {
       row = {
         ...existing,
         'title': media.title,
-        'cover_url': media.coverUrl.isEmpty ? existing['cover_url'] : media.coverUrl,
+        'cover_url': media.coverUrl.isEmpty
+            ? existing['cover_url']
+            : media.coverUrl,
         'total_units': total,
         'status': status.wire,
         'progress': safeProgress,
@@ -105,7 +107,8 @@ class SupabaseTrackingRepository implements TrackingRepository {
   Future<MediaEntry> setStatus(int mediaId, ListStatus status) {
     return _patch(mediaId, {
       'status': status.wire,
-      if (status == ListStatus.completed) 'completed_at': DateTime.now().toIso8601String(),
+      if (status == ListStatus.completed)
+        'completed_at': DateTime.now().toIso8601String(),
     });
   }
 
@@ -118,7 +121,9 @@ class SupabaseTrackingRepository implements TrackingRepository {
   Future<MediaEntry> incrementProgress(int mediaId) async {
     final current = await _find(mediaId);
     final total = current.totalUnits;
-    final next = total == null ? current.progress + 1 : (current.progress + 1).clamp(0, total);
+    final next = total == null
+        ? current.progress + 1
+        : (current.progress + 1).clamp(0, total);
     return _patch(mediaId, {
       'progress': next,
       'status': total != null && next >= total
@@ -137,7 +142,11 @@ class SupabaseTrackingRepository implements TrackingRepository {
   @override
   Future<void> remove(int mediaId) async {
     final userId = _userId;
-    await _db.from(table).delete().eq('user_id', userId).eq('media_id', mediaId);
+    await _db
+        .from(table)
+        .delete()
+        .eq('user_id', userId)
+        .eq('media_id', mediaId);
   }
 
   @override
@@ -198,9 +207,11 @@ class SupabaseTrackingRepository implements TrackingRepository {
       startedAt: DateTime.tryParse(row['started_at'] as String? ?? ''),
       completedAt: DateTime.tryParse(row['completed_at'] as String? ?? ''),
       createdAt:
-          DateTime.tryParse(row['created_at'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(row['created_at'] as String? ?? '') ??
+          DateTime.now(),
       updatedAt:
-          DateTime.tryParse(row['updated_at'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(row['updated_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 }

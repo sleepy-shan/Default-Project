@@ -36,8 +36,8 @@ abstract final class Formatters {
   /// 7.86 -> "7.9" for AniList average scores (0-100 scale shown as-is).
   static String score(int? averageScore) =>
       averageScore == null || averageScore == 0
-          ? '—'
-          : (averageScore / 10).toStringAsFixed(1);
+      ? '—'
+      : (averageScore / 10).toStringAsFixed(1);
 
   /// "3h ago" / "just now" for a past [DateTime].
   static String timeAgo(DateTime date) {

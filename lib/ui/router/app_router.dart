@@ -35,16 +35,17 @@ abstract final class Routes {
 
 /// Builds `'/media/:type/:id'`.
 GoRoute mediaDetailRoute() => GoRoute(
-      path: '/media/:type/:id',
-      builder: (context, state) => MediaDetailScreen(
-        mediaId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
-        initialType: MediaType.fromWire(state.pathParameters['type']),
-      ),
-    );
+  path: '/media/:type/:id',
+  builder: (context, state) => MediaDetailScreen(
+    mediaId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+    initialType: MediaType.fromWire(state.pathParameters['type']),
+  ),
+);
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: Routes.home,
+    // No initialLocation: on the web the router must honor the browser URL
+    // so deep links like /anime or /media/anime/21 work on load/reload.
     routes: [
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),

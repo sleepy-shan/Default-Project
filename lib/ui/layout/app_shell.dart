@@ -136,11 +136,7 @@ class _BrandMark extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(Tokens.radiusMd),
       ),
-      child: const Icon(
-        Icons.bolt,
-        size: 20,
-        color: Colors.white,
-      ),
+      child: const Icon(Icons.bolt, size: 20, color: Colors.white),
     );
     if (compact) {
       return Center(child: mark);
@@ -154,9 +150,8 @@ class _BrandMark extends StatelessWidget {
           const SizedBox(width: Tokens.space8),
           Text(
             'Dartotsu',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -180,9 +175,7 @@ class _TopBar extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor),
-        ),
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
@@ -292,15 +285,15 @@ class _ThemeToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeModeProvider);
-    final isDark = mode == ThemeMode.dark ||
+    final isDark =
+        mode == ThemeMode.dark ||
         (mode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     return IconButton(
       tooltip: isDark ? 'Switch to light theme' : 'Switch to dark theme',
       icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-      onPressed: () => ref
-          .read(settingsControllerProvider.notifier)
-          .toggleDark(!isDark),
+      onPressed: () =>
+          ref.read(settingsControllerProvider.notifier).toggleDark(!isDark),
     );
   }
 }

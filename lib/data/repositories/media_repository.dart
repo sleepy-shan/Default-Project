@@ -83,10 +83,11 @@ class MediaRepository {
     int page = 1,
     int perPage = 10,
   }) async {
-    final data = await _client.query(
-      trendingQuery(detail: false),
-      {'page': page, 'perPage': perPage, 'type': type.anilistValue},
-    );
+    final data = await _client.query(trendingQuery(detail: false), {
+      'page': page,
+      'perPage': perPage,
+      'type': type.anilistValue,
+    });
     return _page(data, page);
   }
 
@@ -94,25 +95,27 @@ class MediaRepository {
   ///
   /// Uses the detailed selection so detail data is already available.
   Future<MediaPage> browse(BrowseQuery query) async {
-    final data = await _client.query(
-      browseQuery(detail: true),
-      {
-        'page': query.page,
-        'perPage': query.perPage,
-        'type': query.type.anilistValue,
-        'sort': [query.sort.wire],
-        'search': query.search.trim().isEmpty ? null : query.search.trim(),
-        'genre': query.genre,
-        'status': query.status?.wire,
-        'format': query.format == MediaFormat.unknown
-            ? null
-            : query.format?.wire,
-        'season': query.season == MediaSeason.unknown
-            ? null
-            : query.season?.wire,
-        'seasonYear': query.seasonYear,
-      },
-    );
+    // AniList treats an explicitly-null `status` as "match nothing", so
+    // unset filters are omitted from the variables map entirely.
+    final variables = <String, dynamic>{
+      'page': query.page,
+      'perPage': query.perPage,
+      'type': query.type.anilistValue,
+      'sort': [query.sort.wire],
+      if (query.search.trim().isNotEmpty) 'search': query.search.trim(),
+      if (query.genre != null && query.genre!.isNotEmpty) 'genre': query.genre,
+      if (query.status != null) 'status': query.status!.wire,
+      if (query.format != null && query.format != MediaFormat.unknown)
+        'format': query.format!.wire,
+      if (query.season != null && query.season != MediaSeason.unknown)
+        'season': query.season!.wire,
+      if (query.seasonYear != null) 'seasonYear': query.seasonYear,
+    };
+
+    // Lists use the light selection (relations/recommendations make a
+    // 24-item query far too slow on AniList); the detail page fetches
+    // those fields for a single title by id.
+    final data = await _client.query(browseQuery(detail: false), variables);
     return _page(data, query.page);
   }
 
@@ -133,16 +136,14 @@ class MediaRepository {
     int page = 1,
     int perPage = 50,
   }) async {
-    final data = await _client.query(
-      kAiringScheduleQuery,
-      {
-        'page': page,
-        'perPage': perPage,
-        'airingAt_greater': from,
-        'airingAt_lesser': to,
-      },
-    );
-    final pageJson = (data['Page'] as Map?)?.map(
+    final data = await _client.query(kAiringScheduleQuery, {
+      'page': page,
+      'perPage': perPage,
+      'airingAt_greater': from,
+      'airingAt_lesser': to,
+    });
+    final pageJson =
+        (data['Page'] as Map?)?.map(
           (key, value) => MapEntry(key.toString(), value),
         ) ??
         const {};
@@ -154,8 +155,10 @@ class MediaRepository {
     final pageJson = raw is Map
         ? raw.map((key, value) => MapEntry(key.toString(), value))
         : const {};
-    final info = (pageJson['pageInfo'] as Map?)
-            ?.map((key, value) => MapEntry(key.toString(), value)) ??
+    final info =
+        (pageJson['pageInfo'] as Map?)?.map(
+          (key, value) => MapEntry(key.toString(), value),
+        ) ??
         const {};
     return MediaPage(
       items: AniListMapper.mediaList(pageJson['media']),

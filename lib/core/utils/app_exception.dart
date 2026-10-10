@@ -43,22 +43,18 @@ class AppException implements Exception {
 
   /// Message that is safe to show to an end user.
   String get userMessage => switch (kind) {
-        ErrorKind.network =>
-          'No connection. Check your internet and try again.',
-        ErrorKind.rateLimit =>
-          'AniList is rate-limiting requests right now. Wait a moment and retry.',
-        ErrorKind.unauthorized =>
-          'Your session expired. Please sign in again.',
-        ErrorKind.forbidden =>
-          'You do not have permission to do that.',
-        ErrorKind.notFound => 'That title could not be found.',
-        ErrorKind.server =>
-          'The service is having trouble right now. Try again later.',
-        ErrorKind.storage => 'Could not save data on this device.',
-        ErrorKind.validation => message,
-        ErrorKind.unknown =>
-          'Something went wrong. Please try again.',
-      };
+    ErrorKind.network => 'No connection. Check your internet and try again.',
+    ErrorKind.rateLimit =>
+      'AniList is rate-limiting requests right now. Wait a moment and retry.',
+    ErrorKind.unauthorized => 'Your session expired. Please sign in again.',
+    ErrorKind.forbidden => 'You do not have permission to do that.',
+    ErrorKind.notFound => 'That title could not be found.',
+    ErrorKind.server =>
+      'The service is having trouble right now. Try again later.',
+    ErrorKind.storage => 'Could not save data on this device.',
+    ErrorKind.validation => message,
+    ErrorKind.unknown => 'Something went wrong. Please try again.',
+  };
 
   @override
   String toString() => 'AppException($kind, $message)';

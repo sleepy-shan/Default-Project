@@ -81,8 +81,9 @@ class LocalTrackingRepository implements TrackingRepository {
   }) async {
     final entries = _readAll();
     final now = DateTime.now();
-    final index =
-        entries.indexWhere((e) => e.mediaId == media.id && e.type == media.type);
+    final index = entries.indexWhere(
+      (e) => e.mediaId == media.id && e.type == media.type,
+    );
 
     final safeProgress = media.totalUnits == null
         ? progress
@@ -153,7 +154,8 @@ class LocalTrackingRepository implements TrackingRepository {
           : progress.clamp(0, entry.totalUnits!);
       return entry.copyWith(
         progress: clamped,
-        status: entry.status == ListStatus.planning &&
+        status:
+            entry.status == ListStatus.planning &&
                 clamped > 0 &&
                 entry.status != ListStatus.completed
             ? ListStatus.watching

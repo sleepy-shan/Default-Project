@@ -81,8 +81,9 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: Tokens.space12),
                 _InfoRow(
                   label: 'Mode',
-                  value:
-                      AppConfig.hasSupabase ? 'Supabase (cloud)' : 'Local demo',
+                  value: AppConfig.hasSupabase
+                      ? 'Supabase (cloud)'
+                      : 'Local demo',
                 ),
                 _InfoRow(label: 'Tracked titles', value: '$entryCount'),
                 _InfoRow(
@@ -195,9 +196,7 @@ class _InfoRow extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            child: Text(value, style: theme.textTheme.bodyLarge),
-          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyLarge)),
         ],
       ),
     );

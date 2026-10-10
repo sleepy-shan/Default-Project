@@ -22,7 +22,9 @@ class ProgressEditor extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   void _set(int value) {
-    final clamped = total == null ? value.clamp(0, 1 << 30) : value.clamp(0, total!);
+    final clamped = total == null
+        ? value.clamp(0, 1 << 30)
+        : value.clamp(0, total!);
     onChanged(clamped);
   }
 
@@ -99,10 +101,7 @@ class ScoreSelector extends StatelessWidget {
         items: [
           const DropdownMenuItem<int?>(value: null, child: Text('Not scored')),
           for (final value in _scores)
-            DropdownMenuItem<int?>(
-              value: value,
-              child: Text('$value / 10'),
-            ),
+            DropdownMenuItem<int?>(value: value, child: Text('$value / 10')),
         ],
         onChanged: onChanged,
       ),
@@ -137,10 +136,7 @@ class StatusSelector extends StatelessWidget {
       ),
       items: [
         for (final value in ListStatus.values)
-          DropdownMenuItem(
-            value: value,
-            child: Text(value.labelFor(type)),
-          ),
+          DropdownMenuItem(value: value, child: Text(value.labelFor(type))),
       ],
       onChanged: (value) {
         if (value != null) onChanged(value);

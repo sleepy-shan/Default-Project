@@ -41,19 +41,13 @@ class AboutScreen extends ConsumerWidget {
                         ),
                         borderRadius: BorderRadius.circular(Tokens.radiusMd),
                       ),
-                      child: const Icon(
-                        Icons.bolt,
-                        color: Colors.white,
-                      ),
+                      child: const Icon(Icons.bolt, color: Colors.white),
                     ),
                     const SizedBox(width: Tokens.space12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Dartotsu Web',
-                          style: theme.textTheme.titleLarge,
-                        ),
+                        Text('Dartotsu Web', style: theme.textTheme.titleLarge),
                         Text(
                           'Version $_version • Flutter web build',
                           style: theme.textTheme.labelLarge?.copyWith(
@@ -75,9 +69,7 @@ class AboutScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: Tokens.space12),
                 Text(
-                  'Architecture: ${AppConfig.hasSupabase
-                      ? 'Flutter web + Supabase (PostgreSQL, Auth, RLS) + AniList'
-                      : 'Flutter web + AniList (local demo tracking)'}',
+                  'Architecture: ${AppConfig.hasSupabase ? 'Flutter web + Supabase (PostgreSQL, Auth, RLS) + AniList' : 'Flutter web + AniList (local demo tracking)'}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

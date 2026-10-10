@@ -120,6 +120,24 @@ titles, very long titles, 429 handling, adding/updating/removing entries
 after a page reload (local mode), theme persistence, keyboard-only
 navigation, and mobile (≤600px) → tablet → desktop layouts.
 
+### Verified in this environment
+
+Built with Flutter 3.47.7 (Dart 3.13.5): `flutter analyze` clean, all
+tests passing, `flutter build web --release` compiled, and the built bundle
+was exercised headlessly against the live AniList API on desktop and mobile
+viewports (home, browse, search, detail, calendar, lists, settings,
+connections). Two browser-only issues found and fixed during verification:
+
+- Deep links (`/anime`, `/media/anime/21`) fell back to `/` because Flutter
+  web defaults to hash URLs — fixed with `usePathUrlStrategy()`.
+- AniList returns **zero results when `status` is sent as an explicit
+  `null`** — the query builder now omits unset filters entirely.
+
+Two hosting notes that follow from this: the static host must rewrite
+unknown paths to `index.html` (deep links), and pages must be served with
+`Cache-Control: no-store` only for `index.html` (hashed assets can be
+cached forever).
+
 ## Deploy
 
 ```bash

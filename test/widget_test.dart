@@ -9,9 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _wrap(Widget child) => MaterialApp(
-      theme: AppTheme.light(),
-      home: Scaffold(body: child),
-    );
+  theme: AppTheme.light(),
+  home: Scaffold(body: child),
+);
 
 void main() {
   testWidgets('ErrorView shows the message and fires retry', (tester) async {
@@ -26,10 +26,7 @@ void main() {
     );
 
     expect(find.text('Something went wrong'), findsOne);
-    expect(
-      find.text('AniList is rate-limiting requests.'),
-      findsOne,
-    );
+    expect(find.text('AniList is rate-limiting requests.'), findsOne);
 
     await tester.tap(find.text('Try again'));
     expect(retried, 1);
@@ -53,8 +50,9 @@ void main() {
     expect(find.text('Browse anime'), findsOne);
   });
 
-  testWidgets('StateView switches between loading, error and data',
-      (tester) async {
+  testWidgets('StateView switches between loading, error and data', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrap(
         StateView<String>(
@@ -93,17 +91,15 @@ void main() {
   testWidgets('StatusBadge shows Reading for manga', (tester) async {
     await tester.pumpWidget(
       _wrap(
-        const StatusBadge(
-          status: ListStatus.watching,
-          type: MediaType.manga,
-        ),
+        const StatusBadge(status: ListStatus.watching, type: MediaType.manga),
       ),
     );
     expect(find.text('Reading'), findsOne);
   });
 
-  testWidgets('ProgressEditor reports increments and decrements',
-      (tester) async {
+  testWidgets('ProgressEditor reports increments and decrements', (
+    tester,
+  ) async {
     var progress = 2;
     await tester.pumpWidget(
       _wrap(

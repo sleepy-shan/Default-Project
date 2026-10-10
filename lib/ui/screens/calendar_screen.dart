@@ -37,34 +37,59 @@ class CalendarScreen extends ConsumerWidget {
             Tokens.space16,
             Tokens.space8,
           ),
-          child: Wrap(
-            spacing: Tokens.space8,
-            runSpacing: Tokens.space8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text('Airing calendar', style: theme.textTheme.headlineMedium),
-              Text(
-                rangeLabel,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              IconButton.filledTonal(
-                tooltip: 'Previous week',
-                onPressed: controller.previousWeek,
-                icon: const Icon(Icons.chevron_left),
-              ),
-              OutlinedButton(
-                onPressed: controller.thisWeek,
-                child: const Text('This week'),
-              ),
-              IconButton.filledTonal(
-                tooltip: 'Next week',
-                onPressed: controller.nextWeek,
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final titleBlock = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Airing calendar',
+                    style: theme.textTheme.headlineMedium,
+                  ),
+                  Text(
+                    rangeLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              );
+              final weekControls = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: 'Previous week',
+                    onPressed: controller.previousWeek,
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  const SizedBox(width: Tokens.space8),
+                  OutlinedButton(
+                    onPressed: controller.thisWeek,
+                    child: const Text('This week'),
+                  ),
+                  const SizedBox(width: Tokens.space8),
+                  IconButton.filledTonal(
+                    tooltip: 'Next week',
+                    onPressed: controller.nextWeek,
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              );
+              if (constraints.maxWidth >= 640) {
+                return Row(
+                  children: [titleBlock, const Spacer(), weekControls],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  titleBlock,
+                  const SizedBox(height: Tokens.space8),
+                  weekControls,
+                ],
+              );
+            },
           ),
         ),
         Expanded(
@@ -85,8 +110,11 @@ class CalendarScreen extends ConsumerWidget {
   }
 
   DateTime _mondayOf(DateTime date) {
-    return DateTime(date.year, date.month, date.day)
-        .subtract(Duration(days: date.weekday - 1));
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).subtract(Duration(days: date.weekday - 1));
   }
 
   LoadState<List<AiringScheduleItem>> _state(CalendarState state) {
@@ -94,13 +122,13 @@ class CalendarScreen extends ConsumerWidget {
       LoadStatus.initial => const LoadState(),
       LoadStatus.loading => const LoadState(status: LoadStatus.loading),
       LoadStatus.error => LoadState(
-          status: LoadStatus.error,
-          errorMessage: state.errorMessage,
-        ),
+        status: LoadStatus.error,
+        errorMessage: state.errorMessage,
+      ),
       LoadStatus.success => LoadState(
-          status: LoadStatus.success,
-          data: state.items,
-        ),
+        status: LoadStatus.success,
+        data: state.items,
+      ),
     };
   }
 }
@@ -229,9 +257,7 @@ class _ScheduleRow extends StatelessWidget {
           ),
         ),
       ),
-      onTap: () => context.go(
-        Routes.mediaDetail(item.mediaType, item.mediaId),
-      ),
+      onTap: () => context.go(Routes.mediaDetail(item.mediaType, item.mediaId)),
     );
   }
 }

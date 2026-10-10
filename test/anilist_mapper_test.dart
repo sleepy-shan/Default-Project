@@ -3,46 +3,50 @@ import 'package:dartotsu_web/data/models/media.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Map<String, dynamic> _sampleMediaJson() => {
-      'id': 154587,
-      'idMal': 52991,
-      'type': 'ANIME',
-      'format': 'TV',
-      'status': 'RELEASING',
-      'season': 'FALL',
-      'seasonYear': 2026,
-      'episodes': 24,
-      'chapters': null,
-      'volumes': null,
-      'duration': 24,
-      'averageScore': 88,
-      'meanScore': 87,
-      'popularity': 123456,
-      'favourites': 2345,
-      'source': 'MANGA',
-      'countryOfOrigin': 'JP',
-      'startDate': {'year': 2026, 'month': 10, 'day': 1},
-      'endDate': {'year': 2026, 'month': 3, 'day': null},
-      'siteUrl': 'https://anilist.co/anime/154587',
-      'title': {
-        'romaji': 'Sousou no Frieren 2',
-        'english': null,
-        'native': '葬送のフリーレン',
-      },
-      'coverImage': {
-        'extraLarge': 'https://img/extra.jpg',
-        'large': 'https://img/large.jpg',
-        'color': '#abc',
-      },
-      'bannerImage': 'https://img/banner.jpg',
-      'description': 'The journey continues.<br><em>Next arc.</em>',
-      'genres': ['Adventure', 'Drama'],
-      'tags': [
-        {'name': 'Magic', 'rank': 90},
-        {'name': 'Elf', 'rank': 80},
-      ],
-      'nextAiringEpisode': {'episode': 2, 'airingAt': 1790000000},
-      'studios': {'nodes': [{'name': 'Madhouse'}]},
-    };
+  'id': 154587,
+  'idMal': 52991,
+  'type': 'ANIME',
+  'format': 'TV',
+  'status': 'RELEASING',
+  'season': 'FALL',
+  'seasonYear': 2026,
+  'episodes': 24,
+  'chapters': null,
+  'volumes': null,
+  'duration': 24,
+  'averageScore': 88,
+  'meanScore': 87,
+  'popularity': 123456,
+  'favourites': 2345,
+  'source': 'MANGA',
+  'countryOfOrigin': 'JP',
+  'startDate': {'year': 2026, 'month': 10, 'day': 1},
+  'endDate': {'year': 2026, 'month': 3, 'day': null},
+  'siteUrl': 'https://anilist.co/anime/154587',
+  'title': {
+    'romaji': 'Sousou no Frieren 2',
+    'english': null,
+    'native': '葬送のフリーレン',
+  },
+  'coverImage': {
+    'extraLarge': 'https://img/extra.jpg',
+    'large': 'https://img/large.jpg',
+    'color': '#abc',
+  },
+  'bannerImage': 'https://img/banner.jpg',
+  'description': 'The journey continues.<br><em>Next arc.</em>',
+  'genres': ['Adventure', 'Drama'],
+  'tags': [
+    {'name': 'Magic', 'rank': 90},
+    {'name': 'Elf', 'rank': 80},
+  ],
+  'nextAiringEpisode': {'episode': 2, 'airingAt': 1790000000},
+  'studios': {
+    'nodes': [
+      {'name': 'Madhouse'},
+    ],
+  },
+};
 
 void main() {
   group('AniListMapper', () {
@@ -133,7 +137,12 @@ void main() {
 
     test('returns null for unusable payloads', () {
       expect(AniListMapper.single(null), isNull);
-      expect(AniListMapper.single({'title': {'romaji': 'no id'}}), isNull);
+      expect(
+        AniListMapper.single({
+          'title': {'romaji': 'no id'},
+        }),
+        isNull,
+      );
       expect(AniListMapper.mediaList('not a list'), isEmpty);
     });
 

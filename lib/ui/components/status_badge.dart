@@ -6,12 +6,12 @@ import '../../data/models/media_entry.dart';
 
 /// Color used for each list status.
 Color statusColor(ListStatus status) => switch (status) {
-      ListStatus.watching => Tokens.statusWatching,
-      ListStatus.planning => Tokens.statusPlanning,
-      ListStatus.completed => Tokens.statusCompleted,
-      ListStatus.paused => Tokens.statusPaused,
-      ListStatus.dropped => Tokens.statusDropped,
-    };
+  ListStatus.watching => Tokens.statusWatching,
+  ListStatus.planning => Tokens.statusPlanning,
+  ListStatus.completed => Tokens.statusCompleted,
+  ListStatus.paused => Tokens.statusPaused,
+  ListStatus.dropped => Tokens.statusDropped,
+};
 
 /// Small colored chip describing a list status.
 class StatusBadge extends StatelessWidget {

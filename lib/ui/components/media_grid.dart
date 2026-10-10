@@ -58,9 +58,7 @@ class _EntryTile extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Tokens.radiusMd),
             child: entry.coverUrl == null || entry.coverUrl!.isEmpty
-                ? ColoredBox(
-                    color: theme.disabledColor.withValues(alpha: 0.12),
-                  )
+                ? ColoredBox(color: theme.disabledColor.withValues(alpha: 0.12))
                 : Image.network(
                     entry.coverUrl!,
                     fit: BoxFit.cover,

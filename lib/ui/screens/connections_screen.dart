@@ -171,7 +171,9 @@ class _StatusRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = connected ? Tokens.success : theme.colorScheme.onSurfaceVariant;
+    final color = connected
+        ? Tokens.success
+        : theme.colorScheme.onSurfaceVariant;
     return Row(
       children: [
         Icon(icon, size: 20, color: color),
@@ -223,9 +225,7 @@ class _CapabilityRow extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            child: Text(value, style: theme.textTheme.bodyLarge),
-          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyLarge)),
         ],
       ),
     );

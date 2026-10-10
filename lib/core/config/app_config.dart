@@ -17,13 +17,17 @@ abstract final class AppConfig {
   static const String aniListEndpoint = 'https://graphql.anilist.co';
 
   /// Optional Supabase project URL (empty string when not configured).
-  static const String supabaseUrl =
-      String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: '',
+  );
 
   /// Optional Supabase anon/public key. The **service-role** key must
   /// never be passed here; it is only safe on a server.
-  static const String supabaseAnonKey =
-      String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: '',
+  );
 
   /// True when a Supabase project has been supplied at build time.
   static bool get hasSupabase =>

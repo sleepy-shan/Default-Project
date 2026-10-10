@@ -53,8 +53,11 @@ class CalendarController extends Notifier<CalendarState> {
   DateTime get _weekStart {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
-    return DateTime(monday.year, monday.month, monday.day)
-        .add(Duration(days: 7 * state.weekOffset));
+    return DateTime(
+      monday.year,
+      monday.month,
+      monday.day,
+    ).add(Duration(days: 7 * state.weekOffset));
   }
 
   Future<void> load() async {

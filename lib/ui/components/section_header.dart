@@ -52,7 +52,8 @@ class SectionHeader extends StatelessWidget {
           ),
           if (actionLabel != null)
             TextButton(
-              onPressed: onAction ??
+              onPressed:
+                  onAction ??
                   (actionPath != null ? () => context.go(actionPath!) : null),
               child: Text(actionLabel!),
             ),
