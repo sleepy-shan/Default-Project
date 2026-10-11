@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/config/app_config.dart';
+import '../../core/theme/app_scroll.dart';
 import '../../core/theme/design_tokens.dart';
+import '../components/app_logo.dart';
 
 /// About / credits page.
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
-  static const String _version = '1.0.0';
+  static const String version = '1.0.0';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return ListView(
+      physics: const SmoothScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
         Tokens.space16,
         Tokens.space20,
@@ -22,93 +24,96 @@ class AboutScreen extends ConsumerWidget {
         Tokens.space48,
       ),
       children: [
-        Text('About', style: theme.textTheme.headlineMedium),
-        const SizedBox(height: Tokens.space16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(Tokens.space16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Tokens.brand, Tokens.accent],
-                        ),
-                        borderRadius: BorderRadius.circular(Tokens.radiusMd),
-                      ),
-                      child: const Icon(Icons.bolt, color: Colors.white),
-                    ),
-                    const SizedBox(width: Tokens.space12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Dartotsu Web', style: theme.textTheme.titleLarge),
-                        Text(
-                          'Version $_version • Flutter web build',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Tokens.space16),
-                Text(
-                  'A responsive web app for discovering anime and manga and '
-                  'tracking your personal watching/reading progress. '
-                  'Titles, artwork, ratings and airing schedules come from '
-                  'the public AniList API; this app does not host any media, '
-                  'and it is not affiliated with AniList.',
-                  style: theme.textTheme.bodyLarge,
-                ),
-                const SizedBox(height: Tokens.space12),
-                Text(
-                  'Architecture: ${AppConfig.hasSupabase ? 'Flutter web + Supabase (PostgreSQL, Auth, RLS) + AniList' : 'Flutter web + AniList (local demo tracking)'}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+        RevealOnScroll(
+          child: Text(
+            'About',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
         const SizedBox(height: Tokens.space16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(Tokens.space16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Credits', style: theme.textTheme.titleLarge),
-                const SizedBox(height: Tokens.space12),
-                _CreditRow(
-                  label: 'Dartotsu project',
-                  detail: 'Feature reference (aayush2622/Dartotsu)',
-                  url: 'https://github.com/aayush2622/Dartotsu',
-                ),
-                _CreditRow(
-                  label: 'AniList API',
-                  detail: 'Anime & manga metadata',
-                  url: 'https://docs.anilist.co/',
-                ),
-                _CreditRow(
-                  label: 'Flutter',
-                  detail: 'Cross-platform UI framework',
-                  url: 'https://flutter.dev',
-                ),
-                if (AppConfig.hasSupabase)
-                  _CreditRow(
-                    label: 'Supabase',
-                    detail: 'Auth, database and row-level security',
-                    url: 'https://supabase.com',
+        RevealOnScroll(
+          index: 1,
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(Tokens.space20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      AppLogo(size: 48, showWordmark: true),
+                      Spacer(),
+                      _VersionPill(),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: Tokens.space16),
+                  Text(
+                    'A responsive web app for discovering anime and manga and '
+                    'tracking your personal watching/reading progress. '
+                    'Titles, artwork, ratings and airing schedules come from '
+                    'the public AniList API; this app does not host any media, '
+                    'and it is not affiliated with AniList.',
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: Tokens.space12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(Tokens.radiusMd),
+                    ),
+                    child: Text(
+                      'Architecture: Flutter web + AniList (metadata + account, local list storage)',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: Tokens.space16),
+        RevealOnScroll(
+          index: 2,
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(Tokens.space16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Credits',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: Tokens.space12),
+                  _CreditRow(
+                    label: 'sleepy-shan',
+                    detail: 'Project owner (sleepy-shan/Default-Project)',
+                    url: 'https://github.com/sleepy-shan/Default-Project',
+                  ),
+                  _CreditRow(
+                    label: 'AniList API',
+                    detail: 'Anime & manga metadata',
+                    url: 'https://docs.anilist.co/',
+                  ),
+                  _CreditRow(
+                    label: 'Flutter',
+                    detail: 'Cross-platform UI framework',
+                    url: 'https://flutter.dev',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -122,6 +127,33 @@ class AboutScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _VersionPill extends StatelessWidget {
+  const _VersionPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: Tokens.brandGradient,
+        borderRadius: BorderRadius.circular(Tokens.radiusPill),
+      ),
+      child: const Text(
+        'v${AboutScreen.version} • WEB',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+          shadows: [
+            Shadow(blurRadius: 6, color: Color(0x66000000)),
+          ],
+        ),
+      ),
     );
   }
 }

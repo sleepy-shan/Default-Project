@@ -1,10 +1,10 @@
-import 'package:dartotsu_web/core/theme/app_theme.dart';
-import 'package:dartotsu_web/data/models/media.dart';
-import 'package:dartotsu_web/data/models/media_entry.dart';
-import 'package:dartotsu_web/state/load_state.dart';
-import 'package:dartotsu_web/ui/components/progress_editor.dart';
-import 'package:dartotsu_web/ui/components/state_views.dart';
-import 'package:dartotsu_web/ui/components/status_badge.dart';
+import 'package:sandwich/core/theme/app_theme.dart';
+import 'package:sandwich/data/models/media.dart';
+import 'package:sandwich/data/models/media_entry.dart';
+import 'package:sandwich/state/load_state.dart';
+import 'package:sandwich/ui/components/progress_editor.dart';
+import 'package:sandwich/ui/components/state_views.dart';
+import 'package:sandwich/ui/components/status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -74,6 +74,7 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
     expect(find.text('boom'), findsOne);
 
     await tester.pumpWidget(
@@ -84,6 +85,7 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
     expect(find.text('data: ok'), findsOne);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });

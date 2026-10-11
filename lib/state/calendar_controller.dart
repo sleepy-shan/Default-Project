@@ -41,8 +41,13 @@ class CalendarState {
 }
 
 /// Loads the airing schedule for the selected week from AniList.
+///
+/// Smart state: a monotonic [_loadId] discards out-of-order responses when
+/// the user taps prev/next rapidly. While reloading, previous [items] are
+/// kept so the list does not flash empty (keep-previous-data).
 class CalendarController extends Notifier<CalendarState> {
   MediaRepository get _repo => ref.read(mediaRepositoryProvider);
+  int _loadId = 0;
 
   @override
   CalendarState build() {
@@ -61,7 +66,13 @@ class CalendarController extends Notifier<CalendarState> {
   }
 
   Future<void> load() async {
+    final id = ++_loadId;
+    final keepItems = state.items;
     state = state.copyWith(status: LoadStatus.loading, errorMessage: null);
+    // Keep previous items visible during reload (no flash).
+    if (keepItems.isNotEmpty) {
+      state = state.copyWith(items: keepItems);
+    }
     try {
       final start = _weekStart;
       final end = start.add(const Duration(days: 7));
@@ -70,17 +81,20 @@ class CalendarController extends Notifier<CalendarState> {
         to: end.millisecondsSinceEpoch ~/ 1000,
         perPage: 50,
       );
+      if (id != _loadId) return;
       state = state.copyWith(
         status: LoadStatus.success,
         items: items,
         errorMessage: null,
       );
     } on AppException catch (error) {
+      if (id != _loadId) return;
       state = state.copyWith(
         status: LoadStatus.error,
         errorMessage: error.userMessage,
       );
     } catch (error) {
+      if (id != _loadId) return;
       state = state.copyWith(
         status: LoadStatus.error,
         errorMessage: 'Could not load the schedule: $error',
@@ -89,16 +103,19 @@ class CalendarController extends Notifier<CalendarState> {
   }
 
   Future<void> nextWeek() async {
+    if (state.status == LoadStatus.loading) return; // throttle spam.
     state = state.copyWith(weekOffset: state.weekOffset + 1);
     await load();
   }
 
   Future<void> previousWeek() async {
+    if (state.status == LoadStatus.loading) return;
     state = state.copyWith(weekOffset: state.weekOffset - 1);
     await load();
   }
 
   Future<void> thisWeek() async {
+    if (state.status == LoadStatus.loading && state.weekOffset == 0) return;
     state = state.copyWith(weekOffset: 0);
     await load();
   }

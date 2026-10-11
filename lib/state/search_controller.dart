@@ -47,15 +47,24 @@ class SearchState {
 }
 
 /// Debounced full-text search across anime and manga.
+///
+/// Smart state: a monotonic [_searchId] discards stale responses when the
+/// user types quickly or toggles the type filter mid-flight. The debounce
+/// [Timer] is cancelled and nulled on dispose (no use-after-dispose).
 class SearchController extends Notifier<SearchState> {
   static const Duration _debounce = Duration(milliseconds: 400);
   Timer? _timer;
+  int _searchId = 0;
 
   MediaRepository get _repo => ref.read(mediaRepositoryProvider);
 
   @override
   SearchState build() {
-    ref.onDispose(() => _timer?.cancel());
+    ref.onDispose(() {
+      _timer?.cancel();
+      _timer = null;
+      _searchId++;
+    });
     return const SearchState();
   }
 
@@ -71,7 +80,10 @@ class SearchController extends Notifier<SearchState> {
       );
       return;
     }
-    _timer = Timer(_debounce, () => runSearch());
+    _timer = Timer(_debounce, () {
+      _timer = null;
+      runSearch();
+    });
   }
 
   Future<void> setTypeFilter(MediaType? type) async {
@@ -83,6 +95,7 @@ class SearchController extends Notifier<SearchState> {
 
   Future<void> submit(String value) async {
     _timer?.cancel();
+    _timer = null;
     state = state.copyWith(query: value);
     await runSearch();
   }
@@ -90,6 +103,7 @@ class SearchController extends Notifier<SearchState> {
   Future<void> runSearch() async {
     final query = state.query.trim();
     if (query.isEmpty) return;
+    final id = ++_searchId;
     state = state.copyWith(status: LoadStatus.loading, errorMessage: null);
     try {
       // AniList's `search` accepts a single type, so run one request per
@@ -109,17 +123,20 @@ class SearchController extends Notifier<SearchState> {
           ),
         ),
       );
+      if (id != _searchId) return; // superseded by a newer search.
       state = state.copyWith(
         status: LoadStatus.success,
         results: pages.expand((page) => page.items).toList(),
         errorMessage: null,
       );
     } on AppException catch (error) {
+      if (id != _searchId) return;
       state = state.copyWith(
         status: LoadStatus.error,
         errorMessage: error.userMessage,
       );
     } catch (error) {
+      if (id != _searchId) return;
       state = state.copyWith(
         status: LoadStatus.error,
         errorMessage: 'Search failed: $error',
@@ -129,6 +146,8 @@ class SearchController extends Notifier<SearchState> {
 
   void clear() {
     _timer?.cancel();
+    _timer = null;
+    _searchId++;
     state = const SearchState();
   }
 }

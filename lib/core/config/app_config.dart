@@ -5,34 +5,42 @@
 ///
 /// ```
 /// flutter run -d chrome \
-///   --dart-define=SUPABASE_URL=https://xxxx.supabase.co \
-///   --dart-define=SUPABASE_ANON_KEY=eyJ...
+///   --dart-define=ANILIST_CLIENT_ID=12345
 /// ```
 ///
-/// When no Supabase project is configured the app runs in **local demo
-/// mode**: everything works, but tracking data is stored only in this
-/// browser (localStorage) instead of a cloud account.
+/// AniList is the only account backend. Public metadata (browse, search,
+/// details, airing schedule) needs no credentials. Logging in with AniList
+/// (OAuth implicit grant) unlocks the personal account identity; the user's
+/// tracking list itself is stored locally in this browser.
 abstract final class AppConfig {
   /// Base URL of the AniList GraphQL API (public metadata source).
   static const String aniListEndpoint = 'https://graphql.anilist.co';
 
-  /// Optional Supabase project URL (empty string when not configured).
-  static const String supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
+  /// AniList OAuth authorize endpoint (implicit grant, response_type=token).
+  static const String aniListAuthorizeEndpoint =
+      'https://anilist.co/api/v2/oauth/authorize';
+
+  /// AniList OAuth client ID.
+  ///
+  /// Create one at https://anilist.co/settings/developer and set the
+  /// Redirect URL to where the app is served (e.g. `http://localhost:8080/`
+  /// for local dev, or your production origin). Then pass it at build time
+  /// with `--dart-define=ANILIST_CLIENT_ID=...`.
+  static const String anilistClientId = String.fromEnvironment(
+    'ANILIST_CLIENT_ID',
     defaultValue: '',
   );
 
-  /// Optional Supabase anon/public key. The **service-role** key must
-  /// never be passed here; it is only safe on a server.
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: '',
-  );
+  /// True when an AniList client ID was supplied at build time.
+  static bool get hasAnilistClient => anilistClientId.isNotEmpty;
 
-  /// True when a Supabase project has been supplied at build time.
-  static bool get hasSupabase =>
-      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
-
-  /// True when the app is running against a real backend.
-  static bool get isCloudMode => hasSupabase;
+  /// OAuth authorize URL for the implicit grant flow.
+  ///
+  /// AniList redirects back to the registered Redirect URL with
+  /// `#access_token=...&token_type=Bearer&expires_in=...`.
+  static Uri anilistLoginUri() {
+    return Uri.parse(
+      '$aniListAuthorizeEndpoint?client_id=$anilistClientId&response_type=token',
+    );
+  }
 }

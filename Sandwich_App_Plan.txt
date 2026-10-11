@@ -1,17 +1,17 @@
-DARTOTSU WEB APP — PROJECT PLAN
+SANDWICH APP — PROJECT PLAN
 Version: 1.1
 Date: 2026-10-10
 
 1. PROJECT OVERVIEW
 
 Project name:
-Dartotsu Web
+Sandwich
 
 Project type:
 Responsive web application built with Flutter and Dart for discovering anime and manga and tracking personal viewing/reading progress.
 
 Reference:
-Dartotsu Linux build v0.0.4 and the public Dartotsu project. Use Dartotsu as a reference for features and workflows, but do not assume its native architecture should be copied directly into a web app. This plan uses Flutter and Dart for the web client and proposes a web-appropriate architecture and data model.
+The feature set defined in this plan (discovery, tracking, calendar, connections). This plan uses Flutter and Dart for the web client and proposes a web-appropriate architecture and data model.
 
 Problem to solve:
 Users may want one convenient interface to discover anime and manga, manage their personal lists, track progress, and connect supported tracking services.
@@ -406,10 +406,9 @@ The MVP is ready for an initial release when:
 
 16. REFERENCE AND LIMITATIONS
 
-Use Dartotsu as a reference for feature ideas and user workflows, not as a mandate to reproduce its native implementation. Prioritize web usability, responsive behavior, browser navigation, security, and maintainability.
+Use the feature set in this plan as the reference for feature ideas and user workflows. Prioritize web usability, responsive behavior, browser navigation, security, and maintainability.
 
-This plan is based on the supplied Dartotsu Linux v0.0.4 build and public repository information, not the full editable source tree or a live audit of every feature. Inspect the official repository for exact implementation details: https://github.com/aayush2622/Dartotsu
-Releases: https://github.com/aayush2622/Dartotsu/releases
+This plan is based on the MVP scope defined above, not a live audit of every feature.
 
 END OF PLAN
 
@@ -486,5 +485,5 @@ Official documentation:
 - AniList API: https://docs.anilist.co/
 - Flutter Web: https://docs.flutter.dev/platform-integration/web
 
-This is the proposed architecture for the new web app, not a claim that the
-original Dartotsu application uses this backend architecture.
+This is the proposed architecture for the new web app, not a claim about
+any other application's backend architecture.

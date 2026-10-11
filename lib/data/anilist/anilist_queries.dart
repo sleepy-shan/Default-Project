@@ -103,6 +103,16 @@ query (\$id: Int) {
   Media(id: \$id) { $kMediaDetailSelection }
 }''';
 
+/// Authenticated viewer lookup used to validate an AniList OAuth token.
+const String kViewerQuery = '''
+query {
+  Viewer {
+    id
+    name
+    avatar { large }
+  }
+}''';
+
 /// Airing schedule for a time window (epoch seconds).
 const String kAiringScheduleQuery = '''
 query (\$page: Int, \$perPage: Int, \$airingAt_greater: Int, \$airingAt_lesser: Int) {

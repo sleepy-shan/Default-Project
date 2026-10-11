@@ -49,10 +49,14 @@ class BrowseState {
 }
 
 /// Drives the Anime and Manga browse screens: filters + infinite scroll.
+///
+/// Smart state: a monotonic [_requestId] discards stale responses when
+/// filters change rapidly or `loadMore` overlaps a fresh `load`.
 class BrowseController extends Notifier<BrowseState> {
   BrowseController(this.mediaType);
 
   final MediaType mediaType;
+  int _requestId = 0;
   MediaRepository get _repo => ref.read(mediaRepositoryProvider);
 
   @override
@@ -63,9 +67,11 @@ class BrowseController extends Notifier<BrowseState> {
   }
 
   Future<void> load() async {
+    final id = ++_requestId;
     state = state.copyWith(status: LoadStatus.loading, errorMessage: null);
     try {
       final page = await _repo.browse(state.query.copyWith(page: 1));
+      if (id != _requestId) return; // superseded by a newer request.
       state = state.copyWith(
         status: LoadStatus.success,
         items: page.items,
@@ -73,11 +79,13 @@ class BrowseController extends Notifier<BrowseState> {
         errorMessage: null,
       );
     } on AppException catch (error) {
+      if (id != _requestId) return;
       state = state.copyWith(
         status: LoadStatus.error,
         errorMessage: error.userMessage,
       );
     } catch (error) {
+      if (id != _requestId) return;
       state = state.copyWith(
         status: LoadStatus.error,
         errorMessage: 'Could not load titles: $error',
@@ -87,10 +95,12 @@ class BrowseController extends Notifier<BrowseState> {
 
   Future<void> loadMore() async {
     if (state.isLoadingMore || !state.hasNextPage) return;
+    final id = _requestId;
     state = state.copyWith(isLoadingMore: true);
     try {
       final nextPage = state.query.page + 1;
       final page = await _repo.browse(state.query.copyWith(page: nextPage));
+      if (id != _requestId) return; // a fresh load superseded pagination.
       state = state.copyWith(
         query: state.query.copyWith(page: nextPage),
         items: [...state.items, ...page.items],
@@ -99,7 +109,7 @@ class BrowseController extends Notifier<BrowseState> {
       );
     } catch (_) {
       // Keep existing items visible; user can scroll again to retry.
-      state = state.copyWith(isLoadingMore: false);
+      if (id == _requestId) state = state.copyWith(isLoadingMore: false);
     }
   }
 

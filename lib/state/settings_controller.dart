@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/theme/design_tokens.dart';
 import 'providers.dart';
 
 /// Theme preference persisted to localStorage.
 enum ThemePreference { system, light, dark }
 
-/// Loads/stores app-level preferences (theme for now; language and display
-/// options are reserved).
+/// Loads/stores app-level preferences (theme + accent color).
 class SettingsController extends Notifier<ThemePreference> {
-  static const _themeKey = 'dartotsu.theme';
+  static const _themeKey = 'sandwich.theme';
 
   SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
 
@@ -38,13 +38,47 @@ class SettingsController extends Notifier<ThemePreference> {
       setThemePreference(isDark ? ThemePreference.dark : ThemePreference.light);
 }
 
+/// Accent color preference, persisted separately so theme + color compose.
+class AccentController extends Notifier<AppAccent> {
+  static const _accentKey = 'sandwich.accent';
+
+  SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
+
+  @override
+  AppAccent build() {
+    final stored = _prefs.getString(_accentKey);
+    return AppAccent.values.firstWhere(
+      (a) => a.name == stored,
+      orElse: () => AppAccent.violet,
+    );
+  }
+
+  Future<void> setAccent(AppAccent accent) async {
+    state = accent;
+    await _prefs.setString(_accentKey, accent.name);
+  }
+}
+
 final settingsControllerProvider =
     NotifierProvider<SettingsController, ThemePreference>(
       SettingsController.new,
     );
 
+final accentControllerProvider = NotifierProvider<AccentController, AppAccent>(
+  AccentController.new,
+);
+
 /// Convenience provider for widgets that only need the resolved ThemeMode.
+///
+/// Uses `select` so consumers rebuild only when the preference changes,
+/// not on unrelated [ProviderScope] updates.
 final themeModeProvider = Provider<ThemeMode>((ref) {
-  final controller = ref.watch(settingsControllerProvider.notifier);
-  return controller.themeMode;
+  final preference = ref.watch(
+    settingsControllerProvider.select((value) => value),
+  );
+  return switch (preference) {
+    ThemePreference.system => ThemeMode.system,
+    ThemePreference.light => ThemeMode.light,
+    ThemePreference.dark => ThemeMode.dark,
+  };
 });

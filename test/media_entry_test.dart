@@ -1,5 +1,5 @@
-import 'package:dartotsu_web/data/models/media.dart';
-import 'package:dartotsu_web/data/models/media_entry.dart';
+import 'package:sandwich/data/models/media.dart';
+import 'package:sandwich/data/models/media_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

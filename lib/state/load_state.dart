@@ -31,6 +31,17 @@ class LoadState<T> {
     );
   }
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LoadState<T> &&
+          status == other.status &&
+          data == other.data &&
+          errorMessage == other.errorMessage;
+
+  @override
+  int get hashCode => Object.hash(status, data, errorMessage);
+
   static LoadState<T> loading<T>() =>
       const LoadState(status: LoadStatus.loading);
 

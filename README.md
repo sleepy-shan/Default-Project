@@ -1,11 +1,11 @@
-# Dartotsu Web
+# Sandwich
 
 A responsive web app for discovering anime and manga and tracking your
 personal watching/reading progress. Built with **Flutter Web (Dart)**,
-powered by the public **AniList API** for metadata, with an optional
-**Supabase** (PostgreSQL + Auth + RLS) backend for cloud-synced lists.
+powered by the **AniList API** for metadata + account login. Lists are
+stored locally in the browser.
 
-This project follows the "Dartotsu Web App Plan" (MVP scope): responsive
+This project follows the "Sandwich App Plan" (MVP scope): responsive
 dashboard, browse/search with filters, media detail pages, personal list
 with status/progress/score, airing calendar, account connections, settings,
 and a credits page — with loading, empty, error and success states handled
@@ -22,8 +22,8 @@ throughout.
 | Track | Add to list, change status, episode/chapter progress stepper, 0–10 score, remove |
 | My List | Filter by status, sort, quick "+1", reset/mark completed, remove with confirmation |
 | Calendar | Weekly AniList airing schedule with day grouping and week navigation |
-| Connections | Account + service connection status and capability overview |
-| Settings | System/Light/Dark theme (persisted), storage mode, clear-list action |
+| Connections | AniList login status + service connection overview |
+| Settings | System/Light/Dark theme (persisted), account info, clear-list action |
 | About | Version, credits and links |
 | UX | Responsive rail/bottom-nav shell, keyboard-friendly controls, long-title + missing-image handling, 429/rate-limit and offline states with retry |
 
@@ -36,33 +36,34 @@ flutter pub get
 flutter run -d chrome          # or: flutter run -d web-server
 ```
 
-That's all you need. Without any additional configuration the app runs in
-**local demo mode**: browsing/searching real AniList data, while your list
-is stored in this browser's localStorage.
+That's all you need. Without login the app runs as a **guest**: browsing/searching
+real AniList data, while your list is stored in this browser's localStorage.
 
-### Connect Supabase (optional, for real accounts)
+### Login with AniList
+
+1. Create a client at https://anilist.co/settings/developer
+   - Set the **Redirect URL** to where the app is served
+     (e.g. `http://localhost:8000/` for `flutter run`, or your production origin).
+2. Run/build with your client ID:
 
 ```bash
-flutter run -d chrome \
-  --dart-define=SUPABASE_URL=https://YOUR-PROJECT.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=YOUR-ANON-OR-PUBLISHABLE-KEY
+flutter run -d chrome --dart-define=ANILIST_CLIENT_ID=YOUR_CLIENT_ID
 ```
 
-1. Create a Supabase project and run [`supabase/schema.sql`](supabase/schema.sql)
-   in the SQL editor (tables + Row Level Security policies).
-2. In Authentication → Providers, enable Email (password or magic link).
-3. Build/run with the two `--dart-define` flags above.
+3. Open **Connections → Login with AniList**, approve on anilist.co —
+   AniList redirects back with `#access_token=...` and the app signs you in.
+   If the redirect doesn't land (wrong Redirect URL), you can also paste the
+   token manually on the same page.
 
-The anon/publishable key is a *public* client key protected by RLS — it is
-safe to ship. The **service-role key must never be used in the client**.
-Do not commit keys; pass them at build time (see `.gitignore` notes /
-your CI secrets).
+The token is stored only in this browser and only ever sent to AniList itself
+(`Authorization: Bearer`). Do not commit client secrets; the implicit grant
+needs only the public client ID.
 
 ## Project structure
 
 ```
 lib/
-  main.dart                      App entry + Supabase init (config-gated)
+  main.dart                      App entry + AniList redirect-token capture
   app.dart                       MaterialApp.router, theme wiring
   core/
     config/app_config.dart       dart-define configuration (no hardcoded secrets)
@@ -71,8 +72,8 @@ lib/
   data/
     anilist/                     GraphQL client, queries, JSON→model mapper
     models/                      Media, MediaEntry, AiringScheduleItem, enums
-    repositories/                MediaRepository, TrackingRepository (+ local
-                                  and Supabase implementations), AuthRepository
+    repositories/                MediaRepository, TrackingRepository (local),
+                                 AuthRepository (AniList OAuth)
   state/                         Riverpod controllers (browse, search, detail,
                                   lists, calendar) + future providers
   ui/
@@ -81,21 +82,19 @@ lib/
     components/                  Poster cards, grids, state views, editors…
     screens/                     Home, Browse, Search, Detail, My List,
                                   Calendar, Connections, Settings, About
-supabase/schema.sql              PostgreSQL schema + RLS policies
-test/                            Unit + widget tests (40 tests)
+test/                            Unit + widget tests
 ```
 
 ### Architecture notes
 
 - **Metadata vs. personal data.** AniList is the source of truth for public
-  metadata; the connected tracking store is the source of truth for the
-  user's list. Only a small metadata subset is cached per entry so the list
-  renders without re-fetching the catalog.
-- **One tracking interface.** All screens talk to `TrackingRepository`.
-  `LocalTrackingRepository` (browser storage) and
-  `SupabaseTrackingRepository` (PostgreSQL, RLS-scoped) are interchangeable;
-  adding AniList/MAL/Simkl account sync later means adding another
-  implementation, not rewriting screens.
+  metadata and for account identity (OAuth + `Viewer` query). The local
+  tracking store is the source of truth for the user's list. Only a small
+  metadata subset is cached per entry so the list renders without re-fetching
+  the catalog.
+- **One tracking interface.** All screens talk to `TrackingRepository`
+  (`LocalTrackingRepository` in browser storage); adding AniList/MAL/Simkl
+  list sync later means adding another implementation, not rewriting screens.
 - **State management.** Riverpod 3 (`NotifierProvider` + `FutureProvider`
   families). Custom `LoadState` drives the explicit
   loading/empty/error/success UI contract.
@@ -116,9 +115,10 @@ flutter analyze       # static analysis
 - `test/widget_test.dart` — StateView/ErrorView/EmptyView/StatusBadge/ProgressEditor behavior
 
 Manual QA worth doing on a real device: search with no results, image-less
-titles, very long titles, 429 handling, adding/updating/removing entries
-after a page reload (local mode), theme persistence, keyboard-only
-navigation, and mobile (≤600px) → tablet → desktop layouts.
+titles, very long titles, 429 handling, AniList login → reload (session
+persists) → logout, adding/updating/removing entries after a page reload,
+theme persistence, keyboard-only navigation, and mobile (≤600px) → tablet →
+desktop layouts.
 
 ### Verified in this environment
 
@@ -141,30 +141,28 @@ cached forever).
 ## Deploy
 
 ```bash
-flutter build web --release
+flutter build web --release --dart-define=ANILIST_CLIENT_ID=YOUR_CLIENT_ID
 ```
 
 Output in `build/web` is a static bundle — host it on any static host
-(GitHub Pages, Netlify, Vercel, Firebase Hosting, Supabase Storage + CDN).
-The router is URL-based, so configure the host to rewrite unknown paths to
-`index.html` for deep links (e.g. `/media/anime/154587`).
+(GitHub Pages, Netlify, Vercel, Firebase Hosting). The router is URL-based,
+so configure the host to rewrite unknown paths to `index.html` for deep
+links (e.g. `/media/anime/154587`).
 
 ## Known limitations
 
-- AniList OAuth (connecting a personal AniList *account* to two-way sync
-  list changes) is not implemented; AniList is used as the metadata
-  source. Account scopes require a server-side flow (Edge Function) to
-  keep tokens out of the client.
+- AniList list sync (two-way `SaveMediaListEntry` / `MediaListCollection`)
+  is not implemented yet — login identifies the account, lists stay local.
 - MAL/Simkl connections are status-only placeholders.
 - No PWA offline support yet (the plan lists "browser-only vs PWA" as an
   open decision); the manifest exists but service-worker caching does not.
-- Local demo data never leaves the browser.
+- Local list data never leaves the browser.
 
 ## Credits
 
-- [Dartotsu project](https://github.com/aayush2622/Dartotsu) — feature reference
-- [AniList API](https://docs.anilist.co/) — anime & manga metadata
-- [Flutter](https://flutter.dev) · [Supabase](https://supabase.com) — app stack
+- [sleepy-shan/Default-Project](https://github.com/sleepy-shan/Default-Project) — project repository
+- [AniList API](https://docs.anilist.co/) — anime & manga metadata + account
+- [Flutter](https://flutter.dev) — app stack
 
 This is an independent project for personal/educational use. It hosts no
-media and is not affiliated with AniList or the Dartotsu project.
+media and is not affiliated with AniList.

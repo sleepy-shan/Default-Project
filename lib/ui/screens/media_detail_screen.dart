@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/theme/app_scroll.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/app_exception.dart';
 import '../../core/utils/formatters.dart';
@@ -11,6 +12,7 @@ import '../../state/media_providers.dart';
 import '../../state/my_lists_controller.dart';
 import '../components/poster_card.dart';
 import '../components/progress_editor.dart';
+import '../components/rails.dart';
 import '../components/state_views.dart';
 import '../components/status_badge.dart';
 
@@ -29,7 +31,7 @@ class MediaDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(mediaDetailProvider(mediaId));
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const LoadingDetail(),
       error: (error, stack) => _DetailError(
         mediaId: mediaId,
         message: error is AppException
@@ -63,75 +65,149 @@ class _DetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lists = ref.watch(myListsControllerProvider);
-    final entry = lists.entryFor(media.id);
+    // `select` on entries only — filter/sort changes do not rebuild detail.
+    final entry = ref.watch(
+      myListsControllerProvider.select((s) {
+        for (final e in s.entries) {
+          if (e.mediaId == media.id) return e;
+        }
+        return null;
+      }),
+    );
     final isWide = MediaQuery.sizeOf(context).width >= 840;
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        // ---- Hero -------------------------------------------------------
-        _Hero(media: media, entry: entry),
-        Padding(
-          padding: const EdgeInsets.all(Tokens.space16),
-          child: isWide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _Overview(media: media),
-                          if (media.relations.isNotEmpty) ...[
-                            const SizedBox(height: Tokens.space24),
-                            _RelationStrip(relations: media.relations),
+    // Single scrollable: collapsing banner app bar + content slivers.
+    // The banner parallaxes away; the title pins on collapse.
+    return CustomScrollView(
+      physics: const SmoothScrollPhysics(),
+      slivers: [
+        _BannerAppBar(media: media),
+        SliverToBoxAdapter(child: _TitleRow(media: media, entry: entry)),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(Tokens.space16),
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _Overview(media: media),
+                            if (media.relations.isNotEmpty) ...[
+                              const SizedBox(height: Tokens.space24),
+                              _RelationStrip(relations: media.relations),
+                            ],
+                            if (media.recommendations.isNotEmpty) ...[
+                              const SizedBox(height: Tokens.space24),
+                              _RecommendationStrip(
+                                recommendations: media.recommendations,
+                              ),
+                            ],
                           ],
-                          if (media.recommendations.isNotEmpty) ...[
-                            const SizedBox(height: Tokens.space24),
-                            _RecommendationStrip(
-                              recommendations: media.recommendations,
-                            ),
-                          ],
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: Tokens.space24),
-                    Expanded(
-                      flex: 2,
-                      child: _TrackingPanel(media: media, entry: entry),
-                    ),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _TrackingPanel(media: media, entry: entry),
-                    const SizedBox(height: Tokens.space24),
-                    _Overview(media: media),
-                    if (media.relations.isNotEmpty) ...[
-                      const SizedBox(height: Tokens.space24),
-                      _RelationStrip(relations: media.relations),
-                    ],
-                    if (media.recommendations.isNotEmpty) ...[
-                      const SizedBox(height: Tokens.space24),
-                      _RecommendationStrip(
-                        recommendations: media.recommendations,
+                      const SizedBox(width: Tokens.space24),
+                      Expanded(
+                        flex: 2,
+                        child: _TrackingPanel(media: media, entry: entry),
                       ),
                     ],
-                  ],
-                ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _TrackingPanel(media: media, entry: entry),
+                      const SizedBox(height: Tokens.space24),
+                      _Overview(media: media),
+                      if (media.relations.isNotEmpty) ...[
+                        const SizedBox(height: Tokens.space24),
+                        _RelationStrip(relations: media.relations),
+                      ],
+                      if (media.recommendations.isNotEmpty) ...[
+                        const SizedBox(height: Tokens.space24),
+                        _RecommendationStrip(
+                          recommendations: media.recommendations,
+                        ),
+                      ],
+                    ],
+                  ),
+          ),
         ),
-        const SizedBox(height: Tokens.space48),
+        const SliverToBoxAdapter(child: SizedBox(height: Tokens.space48)),
       ],
     );
   }
 }
 
-/// Banner + poster + title block.
-class _Hero extends StatelessWidget {
-  const _Hero({required this.media, required this.entry});
+/// Collapsing banner: parallaxes away, title pins on collapse.
+class _BannerAppBar extends StatelessWidget {
+  const _BannerAppBar({required this.media});
+
+  final Media media;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasBanner =
+        media.bannerUrl != null && media.bannerUrl!.isNotEmpty;
+    return SliverAppBar(
+      expandedHeight: hasBanner ? 220 : 80,
+      pinned: true,
+      stretch: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      flexibleSpace: FlexibleSpaceBar(
+        title: Text(
+          media.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        titlePadding: const EdgeInsets.only(left: 52, bottom: 14, right: 16),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasBanner)
+              Image.network(
+                media.bannerUrl!,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.low,
+                errorBuilder: (context, error, stack) =>
+                    const SizedBox.shrink(),
+              ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    theme.scaffoldBackgroundColor.withValues(alpha: 0.1),
+                    theme.scaffoldBackgroundColor,
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        stretchModes: const [
+          StretchMode.zoomBackground,
+          StretchMode.fadeTitle,
+        ],
+      ),
+    );
+  }
+}
+
+/// Poster + title + chips row below the collapsing banner.
+class _TitleRow extends StatelessWidget {
+  const _TitleRow({required this.media, required this.entry});
 
   final Media media;
   final MediaEntry? entry;
@@ -140,119 +216,103 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final statusEntry = entry;
-    return Stack(
-      children: [
-        if (media.bannerUrl != null && media.bannerUrl!.isNotEmpty)
-          Image.network(
-            media.bannerUrl!,
-            height: 220,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stack) =>
-                const SizedBox(height: 220),
-          )
-        else
-          const SizedBox(height: 120),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  theme.scaffoldBackgroundColor.withValues(alpha: 0.1),
-                  theme.scaffoldBackgroundColor,
-                ],
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            Tokens.space16,
-            96,
-            Tokens.space16,
-            Tokens.space8,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(Tokens.radiusMd),
-                child: media.coverUrl.isEmpty
-                    ? Container(
-                        width: 132,
-                        height: 190,
-                        color: theme.disabledColor.withValues(alpha: 0.15),
-                      )
-                    : Image.network(
+    final isPhone = MediaQuery.sizeOf(context).width < Tokens.breakpointCompact;
+    final posterWidth = isPhone ? 104.0 : 132.0;
+    final posterHeight = isPhone ? 150.0 : 190.0;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Tokens.space16,
+        Tokens.space16,
+        Tokens.space16,
+        Tokens.space8,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          RepaintBoundary(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Tokens.radiusMd),
+              child: media.coverUrl.isEmpty
+                  ? Container(
+                      width: posterWidth,
+                      height: posterHeight,
+                      color: theme.disabledColor.withValues(alpha: 0.15),
+                    )
+                  : Hero(
+                      tag: 'media-cover-${media.id}',
+                      child: Image.network(
                         media.coverUrl,
-                        width: 132,
+                        width: posterWidth,
+                        height: posterHeight,
                         fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                        filterQuality: FilterQuality.low,
                         errorBuilder: (context, error, stack) => Container(
-                          width: 132,
-                          height: 190,
-                          color: theme.disabledColor.withValues(alpha: 0.15),
+                          width: posterWidth,
+                          height: posterHeight,
+                          color: theme.disabledColor.withValues(
+                            alpha: 0.15,
+                          ),
                         ),
                       ),
-              ),
-              const SizedBox(width: Tokens.space16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                    ),
+            ),
+          ),
+          const SizedBox(width: Tokens.space16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  media.title,
+                  style: theme.textTheme.headlineMedium,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: Tokens.space8),
+                Wrap(
+                  spacing: Tokens.space8,
+                  runSpacing: Tokens.space8,
                   children: [
-                    Text(
-                      media.title,
-                      style: theme.textTheme.headlineMedium,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(media.type.label),
+                      avatar: Icon(
+                        media.type == MediaType.anime
+                            ? Icons.movie_outlined
+                            : Icons.menu_book_outlined,
+                        size: 16,
+                      ),
                     ),
-                    const SizedBox(height: Tokens.space8),
-                    Wrap(
-                      spacing: Tokens.space8,
-                      runSpacing: Tokens.space8,
-                      children: [
-                        Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: Text(media.type.label),
-                          avatar: Icon(
-                            media.type == MediaType.anime
-                                ? Icons.movie_outlined
-                                : Icons.menu_book_outlined,
-                            size: 16,
-                          ),
+                    if (media.format != MediaFormat.unknown)
+                      Chip(
+                        visualDensity: VisualDensity.compact,
+                        label: Text(media.format.label),
+                      ),
+                    if (statusEntry != null)
+                      StatusBadge(
+                        status: statusEntry.status,
+                        type: media.type,
+                      ),
+                    if (media.averageScore != null &&
+                        media.averageScore! > 0)
+                      Chip(
+                        visualDensity: VisualDensity.compact,
+                        avatar: const Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: Tokens.warning,
                         ),
-                        if (media.format != MediaFormat.unknown)
-                          Chip(
-                            visualDensity: VisualDensity.compact,
-                            label: Text(media.format.label),
-                          ),
-                        if (statusEntry != null)
-                          StatusBadge(
-                            status: statusEntry.status,
-                            type: media.type,
-                          ),
-                        if (media.averageScore != null &&
-                            media.averageScore! > 0)
-                          Chip(
-                            visualDensity: VisualDensity.compact,
-                            avatar: const Icon(
-                              Icons.star_rounded,
-                              size: 16,
-                              color: Tokens.warning,
-                            ),
-                            label: Text(Formatters.score(media.averageScore)),
-                          ),
-                      ],
-                    ),
+                        label: Text(Formatters.score(media.averageScore)),
+                      ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -336,25 +396,50 @@ class _Overview extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                         vertical: Tokens.space8,
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 130,
-                            child: Text(
-                              label,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Stack label over value on very narrow cards.
+                          if (constraints.maxWidth < 320) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  label,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  value,
+                                  style: theme.textTheme.bodyLarge,
+                                ),
+                              ],
+                            );
+                          }
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 130,
+                                child: Text(
+                                  label,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              value,
-                              style: theme.textTheme.bodyLarge,
-                            ),
-                          ),
-                        ],
+                              Expanded(
+                                child: Text(
+                                  value,
+                                  style: theme.textTheme.bodyLarge,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                 ],
@@ -413,96 +498,150 @@ class _TrackingPanel extends ConsumerWidget {
           children: [
             Text('Tracking', style: theme.textTheme.titleLarge),
             const SizedBox(height: Tokens.space4),
-            Text(
-              entry == null
-                  ? 'Save this ${media.type.label.toLowerCase()} to your list to track '
-                        'progress and score.'
-                  : 'On your list • updated ${Formatters.timeAgo(entry.updatedAt)}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            AnimatedSwitcher(
+              duration: Tokens.durationMedium,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.15),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: Text(
+                entry == null
+                    ? 'Save this ${media.type.label.toLowerCase()} to your list to track '
+                          'progress and score.'
+                    : 'On your list • updated ${Formatters.timeAgo(entry.updatedAt)}',
+                key: ValueKey(entry == null ? 'empty' : entry.updatedAt),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             const SizedBox(height: Tokens.space16),
-            if (entry == null)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                  label: Text('Add to my list'),
-                  onPressed: () async {
-                    if (!context.mounted) return;
-                    try {
-                      await controller.addTo(
-                        media: media,
-                        status: ListStatus.planning,
-                        progress: 0,
-                      );
-                      if (!context.mounted) return;
-                      _snack(context, 'Added to your list');
-                    } catch (error) {
-                      if (!context.mounted) return;
-                      _snack(context, 'Could not add title', isError: true);
-                    }
-                  },
+            // Animate between "add" and "edit" states instead of popping.
+            AnimatedSwitcher(
+              duration: Tokens.durationMedium,
+              switchInCurve: Tokens.curveSmooth,
+              switchOutCurve: Tokens.curveSmooth,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.06),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
                 ),
-              )
-            else ...[
-              StatusSelector(
-                status: entry.status,
-                type: media.type,
-                onChanged: (status) async {
-                  if (!context.mounted) return;
-                  try {
-                    await controller.setStatus(media.id, status);
-                    if (!context.mounted) return;
-                    _snack(context, 'Status updated');
-                  } catch (error) {
-                    if (!context.mounted) return;
-                    _snack(context, 'Could not update status', isError: true);
-                  }
-                },
               ),
-              const SizedBox(height: Tokens.space12),
-              ProgressEditor(
-                progress: entry.progress,
-                total: total,
-                unit: media.type.unit,
-                onChanged: (progress) =>
-                    controller.setProgress(media.id, progress),
-              ),
-              const SizedBox(height: Tokens.space8),
-              Row(
-                children: [
-                  ScoreSelector(
-                    score: entry.score,
-                    onChanged: (score) => controller.setScore(media.id, score),
-                  ),
-                  const Spacer(),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.colorScheme.error,
+              child: entry == null
+                  ? SizedBox(
+                      key: const ValueKey('add'),
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(
+                          Icons.bookmark_add_outlined,
+                          size: 18,
+                        ),
+                        label: const Text('Add to my list'),
+                        onPressed: () async {
+                          if (!context.mounted) return;
+                          try {
+                            await controller.addTo(
+                              media: media,
+                              status: ListStatus.planning,
+                              progress: 0,
+                            );
+                            if (!context.mounted) return;
+                            _snack(context, 'Added to your list');
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            _snack(
+                              context,
+                              'Could not add title',
+                              isError: true,
+                            );
+                          }
+                        },
+                      ),
+                    )
+                  : Column(
+                      key: const ValueKey('edit'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StatusSelector(
+                          status: entry.status,
+                          type: media.type,
+                          onChanged: (status) async {
+                            if (!context.mounted) return;
+                            try {
+                              await controller.setStatus(media.id, status);
+                              if (!context.mounted) return;
+                              _snack(context, 'Status updated');
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              _snack(
+                                context,
+                                'Could not update status',
+                                isError: true,
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: Tokens.space12),
+                        ProgressEditor(
+                          progress: entry.progress,
+                          total: total,
+                          unit: media.type.unit,
+                          onChanged: (progress) =>
+                              controller.setProgress(media.id, progress),
+                        ),
+                        const SizedBox(height: Tokens.space8),
+                        // Wrap so score + remove never overflow on 320px.
+                        Wrap(
+                          spacing: Tokens.space8,
+                          runSpacing: Tokens.space8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          alignment: WrapAlignment.spaceBetween,
+                          children: [
+                            ScoreSelector(
+                              score: entry.score,
+                              onChanged: (score) =>
+                                  controller.setScore(media.id, score),
+                            ),
+                            TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: theme.colorScheme.error,
+                              ),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                              ),
+                              label: const Text('Remove'),
+                              onPressed: () async {
+                                if (!context.mounted) return;
+                                try {
+                                  await controller.remove(media.id);
+                                  if (!context.mounted) return;
+                                  _snack(context, 'Removed from your list');
+                                } catch (error) {
+                                  if (!context.mounted) return;
+                                  _snack(
+                                    context,
+                                    'Could not remove entry',
+                                    isError: true,
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Remove'),
-                    onPressed: () async {
-                      if (!context.mounted) return;
-                      try {
-                        await controller.remove(media.id);
-                        if (!context.mounted) return;
-                        _snack(context, 'Removed from your list');
-                      } catch (error) {
-                        if (!context.mounted) return;
-                        _snack(
-                          context,
-                          'Could not remove entry',
-                          isError: true,
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
+            ),
           ],
         ),
       ),
@@ -511,6 +650,8 @@ class _TrackingPanel extends ConsumerWidget {
 }
 
 /// Horizontal strip of sequels/prequels/side stories.
+///
+/// [ArrowRail] with fixed extent (148 + 12 = 160) + desktop arrows.
 class _RelationStrip extends StatelessWidget {
   const _RelationStrip({required this.relations});
 
@@ -524,42 +665,41 @@ class _RelationStrip extends StatelessWidget {
       children: [
         Text('Relations', style: theme.textTheme.headlineSmall),
         const SizedBox(height: Tokens.space12),
-        SizedBox(
+        ArrowRail(
           height: 236,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: relations.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(width: Tokens.space12),
-            itemBuilder: (context, index) {
-              final edge = relations[index];
-              return Column(
+          itemCount: relations.length,
+          itemExtent: 160,
+          itemBuilder: (context, index) {
+            final edge = relations[index];
+            return SizedBox(
+              width: 148,
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(width: 148, child: MediaRailCard(media: edge.media)),
-                  const SizedBox(height: Tokens.space4),
                   SizedBox(
-                    width: 148,
-                    child: Text(
-                      edge.relationType,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                    height: 200,
+                    child: MediaRailCard(media: edge.media),
+                  ),
+                  const SizedBox(height: Tokens.space4),
+                  Text(
+                    edge.relationType,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ],
     );
   }
 }
 
-/// Horizontal strip of AniList recommendations.
+/// Horizontal strip of AniList recommendations ([ArrowRail]).
 class _RecommendationStrip extends StatelessWidget {
   const _RecommendationStrip({required this.recommendations});
 
@@ -573,15 +713,14 @@ class _RecommendationStrip extends StatelessWidget {
       children: [
         Text('You might also like', style: theme.textTheme.headlineSmall),
         const SizedBox(height: Tokens.space12),
-        SizedBox(
+        ArrowRail(
           height: 236,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: recommendations.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(width: Tokens.space12),
-            itemBuilder: (context, index) =>
-                MediaRailCard(media: recommendations[index]),
+          itemCount: recommendations.length,
+          itemExtent: 160,
+          itemBuilder: (context, index) => SizedBox(
+            width: 148,
+            height: 236,
+            child: MediaRailCard(media: recommendations[index]),
           ),
         ),
       ],
