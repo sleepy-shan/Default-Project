@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens for the Sandwich app.
+/// Design tokens for the Ikigai app.
 ///
 /// Every visual decision (color, spacing, radius, typography, duration,
 /// breakpoint) is defined here so screens and components stay consistent
@@ -62,11 +62,13 @@ abstract final class Tokens {
   static const Curve curveSnap = Curves.easeOutBack;
 
   // ---------------------------------------------------------------------
-  // Brand palette
+  // Brand palette — Ikigai "Ink + Vermilion" (wabi-sabi minimal)
   // ---------------------------------------------------------------------
-  static const Color brand = Color(0xFF6C4DF6); // violet
-  static const Color brandDark = Color(0xFF8E74FF);
-  static const Color accent = Color(0xFF00B8A9); // teal
+  static const Color brand = Color(0xFFC73E1D); // shu-iro vermilion
+  static const Color brandDark = Color(0xFFE0684A); // vermilion for dark bg
+  static const Color accent = Color(0xFF2B2D42); // sumi ink
+  static const Color paper = Color(0xFFF5F1E8); // warm washi paper
+  static const Color ink = Color(0xFF1E1E24); // deep sumi
   static const Color like = Color(0xFFE54666); // score / heart
   static const Color success = Color(0xFF21A179);
   static const Color warning = Color(0xFFF4A62A);
@@ -83,20 +85,20 @@ abstract final class Tokens {
   // Signature gradients / surfaces (the "unique" look)
   // ---------------------------------------------------------------------
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [Color(0xFF7C5CFF), Color(0xFF6C4DF6), Color(0xFF00B8A9)],
+    colors: [Color(0xFFE0684A), Color(0xFFC73E1D), Color(0xFF8F2A12)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF1B1440), Color(0xFF0B0D14)],
+    colors: [Color(0xFF241311), Color(0xFF0B0D14)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
-  static const RadialGradient auroraViolet = RadialGradient(
-    colors: [Color(0x557C5CFF), Color(0x00000000)],
+  static const RadialGradient auroraEmber = RadialGradient(
+    colors: [Color(0x55C73E1D), Color(0x00000000)],
   );
-  static const RadialGradient auroraTeal = RadialGradient(
-    colors: [Color(0x4400B8A9), Color(0x00000000)],
+  static const RadialGradient auroraInk = RadialGradient(
+    colors: [Color(0x442B2D42), Color(0x00000000)],
   );
 
   static List<BoxShadow> cardShadow(Brightness brightness) {
@@ -105,7 +107,7 @@ abstract final class Tokens {
       BoxShadow(
         color: isDark
             ? Colors.black.withValues(alpha: 0.45)
-            : const Color(0xFF1B1440).withValues(alpha: 0.10),
+            : const Color(0xFF241311).withValues(alpha: 0.10),
         blurRadius: 24,
         offset: const Offset(0, 12),
       ),
@@ -126,19 +128,37 @@ abstract final class Tokens {
 /// The seed drives `ColorScheme.fromSeed`, so light/dark contrast (primary
 /// vs onPrimary, surface text) stays accessible for every choice — screens
 /// must use `scheme.primary / onSurface / onSurfaceVariant` instead of
-/// hardcoding the old violet.
+/// hardcoding the old vermilion.
 enum AppAccent {
-  violet('Violet', Color(0xFF6C4DF6)),
-  teal('Teal', Color(0xFF00B8A9)),
-  rose('Rose', Color(0xFFE54666)),
-  amber('Amber', Color(0xFFF4A62A)),
-  sky('Sky', Color(0xFF2D9CDB)),
-  mint('Mint', Color(0xFF21A179));
+  vermilion('Vermilion', Color(0xFFC73E1D)),
+  ink('Ink', Color(0xFF2B2D42)),
+  stone('Stone', Color(0xFF8A8378)),
+  sage('Sage', Color(0xFF7D8C6F)),
+  indigo('Indigo', Color(0xFF3E4E8A)),
+  clay('Clay', Color(0xFFB65C38));
 
   const AppAccent(this.label, this.seed);
 
   final String label;
   final Color seed;
+
+  /// Resolves a stored accent name, migrating pre-Ikigai values.
+  static AppAccent fromName(String? name, {AppAccent fallback = AppAccent.vermilion}) {
+    if (name == null || name.isEmpty) return fallback;
+    for (final accent in AppAccent.values) {
+      if (accent.name == name) return accent;
+    }
+    // Pre-rebrand (Sandwich) accents → closest Ikigai equivalent.
+    return switch (name) {
+      'violet' => AppAccent.vermilion,
+      'teal' => AppAccent.sage,
+      'rose' => AppAccent.clay,
+      'amber' => AppAccent.vermilion,
+      'sky' => AppAccent.indigo,
+      'mint' => AppAccent.sage,
+      _ => fallback,
+    };
+  }
 }
 
 /// Typography scale. The app uses the platform font stack (system-ui /

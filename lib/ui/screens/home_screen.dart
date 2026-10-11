@@ -786,7 +786,7 @@ class _HomeFooter extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sandwich • track what you love',
+                    'Ikigai • track what you love',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),

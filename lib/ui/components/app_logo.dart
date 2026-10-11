@@ -1,13 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/design_tokens.dart';
 
-/// Sandwich brand mark.
+/// Ikigai brand mark.
 ///
-/// Concept: a stacked sandwich — golden top bread with sesame, dripping
-/// cheese, wavy lettuce, tomato slice and a thick bottom bread — on a warm
-/// amber-to-ember gradient tile. Rendered as vector so it stays crisp at
-/// any size and in both themes. No image asset required.
+/// Concept: a minimalist ensō — a single ink brush ring with a small
+/// vermilion core — on a deep sumi tile. Rendered as vector so it stays
+/// crisp at any size and in both themes. No image asset required.
 class AppLogo extends StatelessWidget {
   const AppLogo({
     this.size = 36,
@@ -57,13 +58,12 @@ class _Wordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Sandwich',
+          'Ikigai',
           style: TextStyle(
             fontSize: 18 * scale,
             fontWeight: FontWeight.w800,
@@ -79,13 +79,11 @@ class _Wordmark extends StatelessWidget {
             vertical: 2 * scale,
           ),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Tokens.brand, Tokens.accent],
-            ),
+            color: Tokens.brand,
             borderRadius: BorderRadius.circular(Tokens.radiusPill),
           ),
           child: Text(
-            isDark ? 'DISCOVER • TRACK' : 'ANIME • MANGA',
+            'ANIME • MANGA',
             style: TextStyle(
               fontSize: 8.5 * scale,
               fontWeight: FontWeight.w800,
@@ -112,125 +110,59 @@ class _LogoMark extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFFB627), Color(0xFFFF7A1A), Color(0xFFFF5C38)],
+          colors: [Color(0xFF2B2D42), Color(0xFF1E1E24)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(size * 0.28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF7A1A).withValues(alpha: 0.38),
+            color: Tokens.brand.withValues(alpha: 0.32),
             blurRadius: size * 0.35,
             offset: Offset(0, size * 0.12),
           ),
         ],
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.25),
+          color: Colors.white.withValues(alpha: 0.14),
           width: 1,
         ),
       ),
-      child: CustomPaint(painter: _SandwichPainter()),
+      child: CustomPaint(painter: _EnsoPainter()),
     );
   }
 }
 
-/// Paints the stacked sandwich: top bread + sesame, cheese, lettuce wave,
-/// tomato slice and bottom bread.
-class _SandwichPainter extends CustomPainter {
+/// Paints a minimalist ensō ring with a vermilion core.
+class _EnsoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
+    final center = Offset(w * 0.5, h * 0.52);
+    final radius = w * 0.30;
 
-    // Top bread: golden triangle with a flat base.
-    final breadPaint = Paint()..color = const Color(0xFFFFE3A6);
-    final topBread = Path()
-      ..moveTo(w * 0.18, h * 0.50)
-      ..lineTo(w * 0.50, h * 0.22)
-      ..lineTo(w * 0.82, h * 0.50)
-      ..lineTo(w * 0.78, h * 0.535)
-      ..lineTo(w * 0.22, h * 0.535)
-      ..close();
-    canvas.drawPath(topBread, breadPaint);
-
-    // Sesame seeds.
-    final sesamePaint = Paint()..color = const Color(0xFFFFFBEC);
-    for (final s in [
-      (0.42, 0.395, -0.4),
-      (0.54, 0.355, 0.3),
-      (0.62, 0.44, -0.2),
-    ]) {
-      canvas.save();
-      canvas.translate(w * s.$1, h * s.$2);
-      canvas.rotate(s.$3);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset.zero,
-          width: w * 0.075,
-          height: h * 0.045,
-        ),
-        sesamePaint,
-      );
-      canvas.restore();
-    }
-
-    // Cheese slice with a drip.
-    final cheesePaint = Paint()..color = const Color(0xFFFFC93C);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.22, h * 0.535, w * 0.56, h * 0.075),
-        Radius.circular(w * 0.035),
-      ),
-      cheesePaint,
-    );
-    final drip = Path()
-      ..moveTo(w * 0.60, h * 0.605)
-      ..lineTo(w * 0.68, h * 0.605)
-      ..lineTo(w * 0.66, h * 0.675)
-      ..quadraticBezierTo(w * 0.64, h * 0.70, w * 0.62, h * 0.675)
-      ..close();
-    canvas.drawPath(drip, cheesePaint);
-
-    // Lettuce: wavy green stroke.
-    final lettucePaint = Paint()
-      ..color = const Color(0xFF2FBF71)
+    // Ensō ring: warm paper stroke with a gap (brush lift) at lower-right.
+    final ringPaint = Paint()
+      ..color = const Color(0xFFF5F1E8)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.055
+      ..strokeWidth = w * 0.10
       ..strokeCap = StrokeCap.round;
-    final lettuce = Path()..moveTo(w * 0.20, h * 0.655);
-    const bumps = 5;
-    final span = w * 0.60 / bumps;
-    for (var i = 0; i < bumps; i++) {
-      final x = w * 0.20 + span * i;
-      lettuce.quadraticBezierTo(
-        x + span / 2,
-        h * (i.isEven ? 0.605 : 0.705),
-        x + span,
-        h * 0.655,
-      );
-    }
-    canvas.drawPath(lettuce, lettucePaint);
-
-    // Tomato slice.
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.235, h * 0.705, w * 0.53, h * 0.065),
-        Radius.circular(w * 0.033),
-      ),
-      Paint()..color = const Color(0xFFFF5C5C),
+    const startAngle = -0.35 * math.pi;
+    const sweepAngle = 1.72 * math.pi;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      ringPaint,
     );
 
-    // Bottom bread: thick trapezoid.
-    final bottomPaint = Paint()..color = const Color(0xFFB85C0B);
-    final bottom = Path()
-      ..moveTo(w * 0.25, h * 0.79)
-      ..lineTo(w * 0.75, h * 0.79)
-      ..lineTo(w * 0.69, h * 0.875)
-      ..quadraticBezierTo(w * 0.68, h * 0.895, w * 0.65, h * 0.895)
-      ..lineTo(w * 0.35, h * 0.895)
-      ..quadraticBezierTo(w * 0.32, h * 0.895, w * 0.31, h * 0.875)
-      ..close();
-    canvas.drawPath(bottom, bottomPaint);
+    // Vermilion core: the "reason for being" dot.
+    canvas.drawCircle(
+      center,
+      w * 0.085,
+      Paint()..color = const Color(0xFFE0684A),
+    );
   }
 
   @override

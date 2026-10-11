@@ -44,8 +44,8 @@ const List<_Destination> _destinations = [
   ),
 ];
 
-/// Responsive app chrome with the signature Aurora look:
-/// aurora background blobs, glass top menu bar on desktop and a
+/// Responsive app chrome with the signature ink-wash look:
+/// ember/ink background blobs, glass top menu bar on desktop and a
 /// floating pill bar on phones. Screens render inside [child].
 class AppShell extends ConsumerWidget {
   const AppShell({required this.child, super.key});
@@ -165,7 +165,7 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-/// Soft violet/teal blobs that give every page the same unique ambience.
+/// Soft ember/ink blobs that give every page the same calm ambience.
 ///
 /// Isolated in a [RepaintBoundary] so the gradient blobs paint once and
 /// are cached — they do not repaint on every content frame.

@@ -7,8 +7,8 @@ import 'state/settings_controller.dart';
 import 'ui/router/app_router.dart';
 
 /// Root widget: wires theming and routing together.
-class SandwichApp extends ConsumerWidget {
-  const SandwichApp({super.key});
+class IkigaiApp extends ConsumerWidget {
+  const IkigaiApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,7 +18,7 @@ class SandwichApp extends ConsumerWidget {
     final accent = ref.watch(accentControllerProvider);
 
     return MaterialApp.router(
-      title: 'Sandwich',
+      title: 'Ikigai',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       theme: AppTheme.light(accent),

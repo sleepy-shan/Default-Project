@@ -5,33 +5,33 @@ import 'design_tokens.dart';
 
 /// Light and dark [ThemeData] built from the design tokens.
 ///
-/// Signature look — "Aurora glass":
-/// * Deep-space tinted backgrounds with violet/teal aurora glows (painted
+/// Signature look — "Ink wash":
+/// * Warm ink-tinted backgrounds with ember/ink aurora glows (painted
 ///   by [AppShell] behind the content).
 /// * 16-24px rounded cards with soft shadows + hairline borders.
 /// * Pill navigation with glowing indicator.
 /// * Fade+slide page transitions and a slim rounded scrollbar so every
 ///   scroll feels smooth.
 abstract final class AppTheme {
-  static ThemeData light([AppAccent accent = AppAccent.violet]) =>
+  static ThemeData light([AppAccent accent = AppAccent.vermilion]) =>
       _base(Brightness.light, accent);
-  static ThemeData dark([AppAccent accent = AppAccent.violet]) =>
+  static ThemeData dark([AppAccent accent = AppAccent.vermilion]) =>
       _base(Brightness.dark, accent);
 
   static ThemeData _base(Brightness brightness, AppAccent accent) {
     final bool isDark = brightness == Brightness.dark;
-    // Violet keeps the legacy primary values so the signature look is
+    // Vermilion keeps the signature primary values so the Ikigai look is
     // unchanged; other accents use the accessible M3 tonal primary derived
     // from the seed (white-on-primary contrast guaranteed by fromSeed).
     final seeded = ColorScheme.fromSeed(
       seedColor: accent.seed,
       brightness: brightness,
     );
-    final ColorScheme scheme = accent == AppAccent.violet
+    final ColorScheme scheme = accent == AppAccent.vermilion
         ? seeded.copyWith(
             primary: isDark ? Tokens.brandDark : Tokens.brand,
             secondary: Tokens.accent,
-            tertiary: const Color(0xFF7C5CFF),
+            tertiary: const Color(0xFF8A8378),
             surface: isDark
                 ? const Color(0xFF141724)
                 : const Color(0xFFF7F7FB),

@@ -1,11 +1,11 @@
 {
-    "name": "Sandwich — Discover & Track Anime & Manga",
-    "short_name": "Sandwich",
+    "name": "Ikigai — Discover & Track Anime & Manga",
+    "short_name": "Ikigai",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0B0D14",
-    "theme_color": "#FF7A1A",
-    "description": "Sandwich - discover and track anime & manga",
+    "background_color": "#131216",
+    "theme_color": "#C73E1D",
+    "description": "Ikigai - discover and track anime & manga",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -62,7 +62,8 @@ abstract interface class TrackingRepository {
 class LocalTrackingRepository implements TrackingRepository {
   LocalTrackingRepository(this._prefs);
 
-  static const String _storageKey = 'sandwich.tracking.v1';
+  static const String _storageKey = 'ikigai.tracking.v1';
+  static const String _legacyStorageKey = 'sandwich.tracking.v1';
 
   final SharedPreferences _prefs;
   final _controller = StreamController<List<MediaEntry>>.broadcast();
@@ -231,7 +232,8 @@ class LocalTrackingRepository implements TrackingRepository {
   }
 
   List<MediaEntry> _readAll() {
-    final raw = _prefs.getString(_storageKey);
+    final raw =
+        _prefs.getString(_storageKey) ?? _prefs.getString(_legacyStorageKey);
     if (raw == null || raw.isEmpty) return [];
     try {
       final decoded = jsonDecode(raw);

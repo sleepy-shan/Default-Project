@@ -27,7 +27,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const SandwichApp(),
+      child: const IkigaiApp(),
     ),
   );
 }
