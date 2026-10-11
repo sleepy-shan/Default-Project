@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Web (Low-Memory Release, Recommended)",
+      // Uses web-server device instead of chrome device:
+      // no extra Chrome instance spawned by the tool, much lower RAM.
+      // After launch, open the printed URL in your EXISTING Chrome tab.
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "web-server",
+        "--release",
+        "--web-port",
+        "8080",
+        "--web-hostname",
+        "127.0.0.1"
+      ]
+    },
+    {
+      "name": "Flutter Web (Debug web-server)",
+      // Debug + hot reload but still without auto-launching Chrome.
+      // Lighter than `-d chrome`. Open the URL manually.
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "web-server",
+        "--web-port",
+        "8080",
+        "--web-hostname",
+        "127.0.0.1"
+      ]
+    }
+  ]
+}

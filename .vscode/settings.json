@@ -1,0 +1,25 @@
+{
+  // Low-memory VS Code settings for this 2.7GB container.
+  // Reduces file watching + analysis load so Flutter web runs don't freeze the UI.
+  "files.watcherExclude": {
+    "**/build/**": true,
+    "**/.dart_tool/**": true,
+    "**/.git/**": true,
+    "**/pubspec.lock": true
+  },
+  "search.exclude": {
+    "**/build": true,
+    "**/.dart_tool": true
+  },
+  "files.exclude": {
+    "**/.dart_tool": true
+  },
+  "dart.analysisExcludedFolders": [
+    "build"
+  ],
+  // Don't auto-run pub get on every save; do it manually.
+  "dart.runPubGetOnPubspecChanges": "never",
+  // Keep Flutter UI guides off to save renderer work on low RAM.
+  "dart.previewFlutterUiGuides": false,
+  "dart.showDevTools": "never"
+}
