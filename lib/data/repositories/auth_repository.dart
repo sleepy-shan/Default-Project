@@ -86,8 +86,11 @@ class AniListAuthRepository implements AuthRepository {
     : _client = client ?? AniListClient(),
       _ownsClient = client == null;
 
-  static const String tokenKey = 'sandwich.anilist.token';
-  static const String userKey = 'sandwich.anilist.user';
+  static const String tokenKey = 'ikigai.anilist.token';
+  static const String userKey = 'ikigai.anilist.user';
+  // Pre-rebrand keys — read once for migration, new writes use ikigai.*.
+  static const String legacyTokenKey = 'sandwich.anilist.token';
+  static const String legacyUserKey = 'sandwich.anilist.user';
 
   final SharedPreferences _prefs;
   final AniListClient _client;
@@ -141,6 +144,8 @@ class AniListAuthRepository implements AuthRepository {
     _user = null;
     await _prefs.remove(tokenKey);
     await _prefs.remove(userKey);
+    await _prefs.remove(legacyTokenKey);
+    await _prefs.remove(legacyUserKey);
     if (!_controller.isClosed) _controller.add(null);
   }
 
@@ -148,7 +153,8 @@ class AniListAuthRepository implements AuthRepository {
   Future<void> restore() async {
     if (_restored) return;
     _restored = true;
-    _token = _prefs.getString(tokenKey);
+    _token =
+        _prefs.getString(tokenKey) ?? _prefs.getString(legacyTokenKey);
     _user = _cachedUser();
     if (_token == null || _token!.isEmpty) {
       _token = null;
@@ -173,7 +179,8 @@ class AniListAuthRepository implements AuthRepository {
   }
 
   AuthUser? _cachedUser() {
-    final raw = _prefs.getString(userKey);
+    final raw =
+        _prefs.getString(userKey) ?? _prefs.getString(legacyUserKey);
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);

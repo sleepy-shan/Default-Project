@@ -10,13 +10,15 @@ enum ThemePreference { system, light, dark }
 
 /// Loads/stores app-level preferences (theme + accent color).
 class SettingsController extends Notifier<ThemePreference> {
-  static const _themeKey = 'sandwich.theme';
+  static const _themeKey = 'ikigai.theme';
+  static const _legacyThemeKey = 'sandwich.theme';
 
   SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
 
   @override
   ThemePreference build() {
-    final stored = _prefs.getString(_themeKey);
+    final stored =
+        _prefs.getString(_themeKey) ?? _prefs.getString(_legacyThemeKey);
     return ThemePreference.values.firstWhere(
       (p) => p.name == stored,
       orElse: () => ThemePreference.system,
@@ -40,17 +42,16 @@ class SettingsController extends Notifier<ThemePreference> {
 
 /// Accent color preference, persisted separately so theme + color compose.
 class AccentController extends Notifier<AppAccent> {
-  static const _accentKey = 'sandwich.accent';
+  static const _accentKey = 'ikigai.accent';
+  static const _legacyAccentKey = 'sandwich.accent';
 
   SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
 
   @override
   AppAccent build() {
-    final stored = _prefs.getString(_accentKey);
-    return AppAccent.values.firstWhere(
-      (a) => a.name == stored,
-      orElse: () => AppAccent.violet,
-    );
+    final stored =
+        _prefs.getString(_accentKey) ?? _prefs.getString(_legacyAccentKey);
+    return AppAccent.fromName(stored);
   }
 
   Future<void> setAccent(AppAccent accent) async {

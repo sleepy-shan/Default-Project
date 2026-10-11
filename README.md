@@ -1,11 +1,11 @@
-# Sandwich
+# Ikigai
 
 A responsive web app for discovering anime and manga and tracking your
 personal watching/reading progress. Built with **Flutter Web (Dart)**,
 powered by the **AniList API** for metadata + account login. Lists are
 stored locally in the browser.
 
-This project follows the "Sandwich App Plan" (MVP scope): responsive
+This project follows the "Ikigai App Plan" (MVP scope): responsive
 dashboard, browse/search with filters, media detail pages, personal list
 with status/progress/score, airing calendar, account connections, settings,
 and a credits page — with loading, empty, error and success states handled

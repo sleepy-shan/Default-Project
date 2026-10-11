@@ -1,28 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="sw" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FFB627"/>
-      <stop offset="0.55" stop-color="#FF7A1A"/>
-      <stop offset="1" stop-color="#FF5C38"/>
+    <linearGradient id="ik" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B2D42"/>
+      <stop offset="1" stop-color="#1E1E24"/>
     </linearGradient>
   </defs>
-  <rect x="4" y="4" width="120" height="120" rx="34" fill="url(#sw)"/>
-  <rect x="4" y="4" width="120" height="120" rx="34" fill="none" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="2"/>
-  <!-- top bread -->
-  <path d="M23 64 L64 28 L105 64 L100 68.5 L28 68.5 Z" fill="#FFE3A6"/>
-  <!-- sesame -->
-  <g fill="#FFFFEC">
-    <ellipse cx="54" cy="50.5" rx="4.8" ry="2.9" transform="rotate(-23 54 50.5)"/>
-    <ellipse cx="69" cy="45.5" rx="4.8" ry="2.9" transform="rotate(17 69 45.5)"/>
-    <ellipse cx="79" cy="56" rx="4.8" ry="2.9" transform="rotate(-11 79 56)"/>
+  <rect x="4" y="4" width="120" height="120" rx="34" fill="url(#ik)"/>
+  <rect x="4" y="4" width="120" height="120" rx="34" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="2"/>
+  <g transform="rotate(-63 64 66)">
+    <circle cx="64" cy="66" r="38" fill="none" stroke="#F5F1E8" stroke-width="12.5" stroke-linecap="round" stroke-dasharray="199 40"/>
   </g>
-  <!-- cheese + drip -->
-  <rect x="28" y="68.5" width="72" height="9.5" rx="4.5" fill="#FFC93C"/>
-  <path d="M77 77.5 H87 L84.5 86.5 Q82 89.5 79.5 86.5 Z" fill="#FFC93C"/>
-  <!-- lettuce wave -->
-  <path d="M26 84 q7.5 -6.5 15 0 t15 0 t15 0 t15 0 t15 0" fill="none" stroke="#2FBF71" stroke-width="7" stroke-linecap="round"/>
-  <!-- tomato -->
-  <rect x="30" y="90" width="68" height="8.5" rx="4.2" fill="#FF5C5C"/>
-  <!-- bottom bread -->
-  <path d="M32 101 H96 L88.5 112 Q87.5 114.5 84 114.5 H44 Q40.5 114.5 39.5 112 Z" fill="#B85C0B"/>
+  <circle cx="64" cy="66" r="11" fill="#E0684A"/>
 </svg>
