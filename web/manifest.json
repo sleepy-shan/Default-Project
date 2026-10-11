@@ -1,11 +1,11 @@
 {
-    "name": "dartotsu_web",
-    "short_name": "dartotsu_web",
+    "name": "Sandwich — Discover & Track Anime & Manga",
+    "short_name": "Sandwich",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Dartotsu Web - discover and track anime & manga",
+    "background_color": "#0B0D14",
+    "theme_color": "#FF7A1A",
+    "description": "Sandwich - discover and track anime & manga",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

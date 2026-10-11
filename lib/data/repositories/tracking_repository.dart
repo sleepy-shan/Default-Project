@@ -7,8 +7,12 @@ import '../../core/utils/app_exception.dart';
 import '../models/media.dart';
 import '../models/media_entry.dart';
 
-/// Common contract for every tracking backend (local demo, Supabase, and
-/// future third-party services such as AniList/MAL/Simkl accounts).
+/// Common contract for the tracking backend.
+///
+/// AniList is the account backend (login/identity). The tracking list itself
+/// is stored locally in this browser via [LocalTrackingRepository]; adding
+/// direct AniList list sync later means adding another implementation of this
+/// interface, not rewriting screens.
 ///
 /// Keeping this interface small means a new integration can be added
 /// without touching UI code.
@@ -49,16 +53,16 @@ abstract interface class TrackingRepository {
   Future<MediaEntry?> entryFor(int mediaId);
 }
 
-/// Storage-backed implementation used when no Supabase project is
-/// configured (and for guests).
+/// Storage-backed tracking store.
 ///
 /// Data lives in the browser's localStorage, which is appropriate for
-/// preferences and demo state only — never for tokens or private
-/// credentials.
+/// preferences and personal list state only — never for tokens or private
+/// credentials (the AniList OAuth token is stored under its own key and
+/// only ever sent to AniList itself).
 class LocalTrackingRepository implements TrackingRepository {
   LocalTrackingRepository(this._prefs);
 
-  static const String _storageKey = 'dartotsu.tracking.v1';
+  static const String _storageKey = 'sandwich.tracking.v1';
 
   final SharedPreferences _prefs;
   final _controller = StreamController<List<MediaEntry>>.broadcast();

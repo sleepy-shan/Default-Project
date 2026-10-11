@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_motion.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../data/models/media.dart';
 import '../../data/models/media_entry.dart';
 
 /// Stepper plus slider for episode/chapter progress.
+///
+/// Animated: the +/- buttons scale on press, the counter cross-fades on
+/// change, and the slider thumb glides (slider itself animates natively).
 class ProgressEditor extends StatelessWidget {
   const ProgressEditor({
     required this.progress,
@@ -33,38 +37,73 @@ class ProgressEditor extends StatelessWidget {
     final max = total;
     return Row(
       children: [
-        IconButton.filledTonal(
-          tooltip: 'Decrease $unit',
-          onPressed: progress > 0 ? () => _set(progress - 1) : null,
-          icon: const Icon(Icons.remove, size: 18),
+        Pressable(
+          onTap: progress > 0 ? () => _set(progress - 1) : null,
+          child: IconButton.filledTonal(
+            tooltip: 'Decrease $unit',
+            onPressed: progress > 0 ? () => _set(progress - 1) : null,
+            icon: const Icon(Icons.remove, size: 18),
+          ),
         ),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                max != null
-                    ? '$progress / $max ${unit}s'
-                    : '$progress ${unit}s',
-                style: Theme.of(context).textTheme.titleMedium,
+              AnimatedSwitcher(
+                duration: Tokens.durationFast,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.3),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: Text(
+                  max != null
+                      ? '$progress / $max ${unit}s'
+                      : '$progress ${unit}s',
+                  key: ValueKey(progress),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
               if (max != null)
-                Slider(
-                  value: progress.clamp(0, max).toDouble(),
-                  max: max.toDouble(),
-                  divisions: max > 0 ? max : null,
-                  label: '$progress',
-                  onChanged: (value) => _set(value.round()),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(
+                    begin: 0,
+                    end: progress.clamp(0, max).toDouble(),
+                  ),
+                  duration: Tokens.durationMedium,
+                  curve: Tokens.curveSmooth,
+                  builder: (context, animated, _) => Slider(
+                    value: animated.clamp(0, max.toDouble()),
+                    max: max.toDouble(),
+                    divisions: max > 0 ? max : null,
+                    label: '$progress',
+                    onChanged: (value) => _set(value.round()),
+                  ),
                 ),
             ],
           ),
         ),
-        IconButton.filledTonal(
-          tooltip: 'Increase $unit',
-          onPressed: max == null || progress < max
+        Pressable(
+          onTap: max == null || progress < max
               ? () => _set(progress + 1)
               : null,
-          icon: const Icon(Icons.add, size: 18),
+          child: IconButton.filledTonal(
+            tooltip: 'Increase $unit',
+            onPressed: max == null || progress < max
+                ? () => _set(progress + 1)
+                : null,
+            icon: AnimatedScale(
+              // Subtle pop when the value changes.
+              scale: 1.0,
+              duration: Tokens.durationFast,
+              child: const Icon(Icons.add, size: 18),
+            ),
+          ),
         ),
       ],
     );

@@ -1,4 +1,4 @@
-import 'package:dartotsu_web/core/utils/formatters.dart';
+import 'package:sandwich/core/utils/formatters.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

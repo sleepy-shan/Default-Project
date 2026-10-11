@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens for the Dartotsu Web app.
+/// Design tokens for the Sandwich app.
 ///
 /// Every visual decision (color, spacing, radius, typography, duration,
 /// breakpoint) is defined here so screens and components stay consistent
@@ -36,6 +36,12 @@ abstract final class Tokens {
   static const double iconButtonSize = 40;
   static const double inputHeight = 44;
 
+  /// Max content width for centered layouts on ultra-wide screens.
+  static const double maxContentWidth = 1280;
+
+  /// Max width for narrow forms (search field, settings cards).
+  static const double narrowMaxWidth = 720;
+
   // ---------------------------------------------------------------------
   // Responsive breakpoints
   // ---------------------------------------------------------------------
@@ -49,6 +55,11 @@ abstract final class Tokens {
   static const Duration durationFast = Duration(milliseconds: 150);
   static const Duration durationMedium = Duration(milliseconds: 250);
   static const Duration durationSlow = Duration(milliseconds: 400);
+  static const Duration durationReveal = Duration(milliseconds: 480);
+  static const Duration durationHero = Duration(milliseconds: 700);
+
+  static const Curve curveSmooth = Curves.easeOutCubic;
+  static const Curve curveSnap = Curves.easeOutBack;
 
   // ---------------------------------------------------------------------
   // Brand palette
@@ -67,6 +78,67 @@ abstract final class Tokens {
   static const Color statusCompleted = Color(0xFF21A179);
   static const Color statusPaused = Color(0xFFF2C94C);
   static const Color statusDropped = Color(0xFFEB5757);
+
+  // ---------------------------------------------------------------------
+  // Signature gradients / surfaces (the "unique" look)
+  // ---------------------------------------------------------------------
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [Color(0xFF7C5CFF), Color(0xFF6C4DF6), Color(0xFF00B8A9)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+  static const LinearGradient heroGradient = LinearGradient(
+    colors: [Color(0xFF1B1440), Color(0xFF0B0D14)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+  static const RadialGradient auroraViolet = RadialGradient(
+    colors: [Color(0x557C5CFF), Color(0x00000000)],
+  );
+  static const RadialGradient auroraTeal = RadialGradient(
+    colors: [Color(0x4400B8A9), Color(0x00000000)],
+  );
+
+  static List<BoxShadow> cardShadow(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    return [
+      BoxShadow(
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.45)
+            : const Color(0xFF1B1440).withValues(alpha: 0.10),
+        blurRadius: 24,
+        offset: const Offset(0, 12),
+      ),
+    ];
+  }
+
+  static List<BoxShadow> glowShadow(Color color) => [
+        BoxShadow(
+          color: color.withValues(alpha: 0.35),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
+        ),
+      ];
+}
+
+/// Accent color choices offered in Settings.
+///
+/// The seed drives `ColorScheme.fromSeed`, so light/dark contrast (primary
+/// vs onPrimary, surface text) stays accessible for every choice — screens
+/// must use `scheme.primary / onSurface / onSurfaceVariant` instead of
+/// hardcoding the old violet.
+enum AppAccent {
+  violet('Violet', Color(0xFF6C4DF6)),
+  teal('Teal', Color(0xFF00B8A9)),
+  rose('Rose', Color(0xFFE54666)),
+  amber('Amber', Color(0xFFF4A62A)),
+  sky('Sky', Color(0xFF2D9CDB)),
+  mint('Mint', Color(0xFF21A179));
+
+  const AppAccent(this.label, this.seed);
+
+  final String label;
+  final Color seed;
 }
 
 /// Typography scale. The app uses the platform font stack (system-ui /

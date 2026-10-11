@@ -14,6 +14,9 @@ Color statusColor(ListStatus status) => switch (status) {
 };
 
 /// Small colored chip describing a list status.
+///
+/// Animates background/border/text color when [status] changes (e.g.
+/// Planning -> Watching) via [AnimatedContainer] instead of popping.
 class StatusBadge extends StatelessWidget {
   const StatusBadge({required this.status, this.type, super.key});
 
@@ -24,9 +27,22 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = statusColor(status);
+    final base = statusColor(status);
+    // Light mode: pure status hues (esp. paused yellow) are too faint as
+    // text on a tinted-white chip — darken for contrast. Dark mode keeps
+    // the vivid hue on the dark chip.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color color = isDark
+        ? base
+        : HSLColor.fromColor(base)
+              .withLightness(
+                (HSLColor.fromColor(base).lightness - 0.18).clamp(0.0, 1.0),
+              )
+              .toColor();
     final label = type != null ? status.labelFor(type!) : status.label;
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
       padding: const EdgeInsets.symmetric(
         horizontal: Tokens.space8,
         vertical: Tokens.space2,

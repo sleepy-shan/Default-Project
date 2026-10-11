@@ -1,22 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../state/my_lists_controller.dart';
+import '../../state/providers.dart';
 import '../router/app_router.dart';
 
-/// Account connections page: which services are linked, their status and
-/// what each integration can do.
-class ConnectionsScreen extends ConsumerWidget {
+/// Account connections page: AniList login status and service overview.
+///
+/// AniList is the only account backend (OAuth implicit grant). Public
+/// browsing works as a guest; signing in identifies the user for future
+/// personal features while lists stay in this browser's localStorage.
+class ConnectionsScreen extends ConsumerStatefulWidget {
   const ConnectionsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConnectionsScreen> createState() => _ConnectionsScreenState();
+}
+
+class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
+  final _tokenController = TextEditingController();
+  bool _savingToken = false;
+  String? _tokenError;
+
+  @override
+  void dispose() {
+    _tokenController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loginWithAniList(Uri loginUri) async {
+    // Must stay in the same tab so AniList can redirect back with
+    // `#access_token=...` to this app.
+    final ok = await launchUrl(loginUri, webOnlyWindowName: '_self');
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open AniList login')),
+      );
+    }
+  }
+
+  Future<void> _savePastedToken() async {
+    final token = _tokenController.text.trim();
+    if (token.isEmpty) {
+      setState(() => _tokenError = 'Paste the access_token from AniList.');
+      return;
+    }
+    setState(() {
+      _savingToken = true;
+      _tokenError = null;
+    });
+    try {
+      // Accept either a raw token or a full redirect URL/fragment.
+      final extracted =
+          parseAccessTokenFromFragment(token) ??
+          parseAccessTokenFromUri(Uri.tryParse(token) ?? Uri()) ??
+          token;
+      await ref.read(authRepositoryProvider).signInWithToken(extracted);
+      _tokenController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Signed in with AniList')),
+        );
+      }
+    } on Object catch (error) {
+      setState(() => _tokenError = '$error');
+    } finally {
+      if (mounted) setState(() => _savingToken = false);
+    }
+  }
+
+  Future<void> _signOut() async {
+    await ref.read(authRepositoryProvider).signOut();
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Signed out')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final entries = ref.watch(myListsControllerProvider).entries;
-    final cloud = AppConfig.hasSupabase;
+    final auth = ref.watch(authStateProvider);
+    final signedIn = switch (auth) {
+      AsyncData(:final value) => value != null,
+      _ => false,
+    };
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -29,37 +104,15 @@ class ConnectionsScreen extends ConsumerWidget {
         Text('Account & connections', style: theme.textTheme.headlineMedium),
         const SizedBox(height: Tokens.space4),
         Text(
-          cloud
-              ? 'Signed in with your Dartotsu account. Tracking data syncs through Supabase.'
-              : 'You are using local demo mode: lists are stored in this browser only.',
+          'Sign in with AniList to identify your account. Your lists stay in this browser.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: Tokens.space24),
         _SectionCard(
-          title: 'Dartotsu account',
-          children: [
-            _StatusRow(
-              icon: Icons.person_outline,
-              label: cloud ? 'Supabase session active' : 'Local guest session',
-              connected: cloud,
-              trailing: cloud ? 'Synced' : 'Local only',
-            ),
-            if (!cloud) ...[
-              const SizedBox(height: Tokens.space8),
-              Text(
-                'To enable accounts, build with Supabase credentials:\n'
-                'flutter run -d chrome '
-                '--dart-define=SUPABASE_URL=... '
-                '--dart-define=SUPABASE_ANON_KEY=...',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ],
+          title: 'AniList account',
+          children: [_buildAccountBody(theme, auth)],
         ),
         const SizedBox(height: Tokens.space16),
         _SectionCard(
@@ -67,9 +120,9 @@ class ConnectionsScreen extends ConsumerWidget {
           children: [
             _StatusRow(
               icon: Icons.hub_outlined,
-              label: 'AniList (metadata + tracking)',
+              label: 'AniList (metadata + account)',
               connected: true,
-              trailing: 'Public API',
+              trailing: signedIn ? 'Signed in' : 'Public API',
             ),
             const Divider(height: Tokens.space24),
             _StatusRow(
@@ -110,10 +163,7 @@ class ConnectionsScreen extends ConsumerWidget {
               'Episode & chapter counters saved per title',
             ),
             _CapabilityRow('Scores', 'Personal 0–10 score per title'),
-            _CapabilityRow(
-              'Storage',
-              cloud ? 'Supabase (PostgreSQL + RLS)' : 'This browser only',
-            ),
+            _CapabilityRow('Storage', 'This browser only'),
           ],
         ),
         const SizedBox(height: Tokens.space16),
@@ -125,6 +175,186 @@ class ConnectionsScreen extends ConsumerWidget {
             label: const Text('Open settings'),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildAccountBody(ThemeData theme, AsyncValue<AuthUser?> auth) {
+    final user = switch (auth) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+    if (auth.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text('Checking AniList session…'),
+          ],
+        ),
+      );
+    }
+    if (user != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundImage: user.avatarUrl != null
+                    ? NetworkImage(user.avatarUrl!)
+                    : null,
+                child: user.avatarUrl == null
+                    ? Text(
+                        user.name.isEmpty
+                            ? '?'
+                            : user.name[0].toUpperCase(),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: Tokens.space12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.name,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'AniList ID: ${user.id}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Tokens.space8,
+                  vertical: Tokens.space2,
+                ),
+                decoration: BoxDecoration(
+                  color: Tokens.success.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(Tokens.radiusPill),
+                ),
+                child: const Text(
+                  'Connected',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Tokens.success,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Tokens.space12),
+          OutlinedButton.icon(
+            onPressed: _signOut,
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Sign out'),
+          ),
+          if (auth.hasError) ...[
+            const SizedBox(height: Tokens.space8),
+            Text(
+              '${auth.error}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
+    // Guest mode.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _StatusRow(
+          icon: Icons.person_outline,
+          label: 'Guest session',
+          connected: false,
+          trailing: 'Local only',
+        ),
+        const SizedBox(height: Tokens.space12),
+        if (!AppConfig.hasAnilistClient) ...[
+          Text(
+            'To enable AniList login, create a client at '
+            'anilist.co/settings/developer and rebuild with:\n'
+            'flutter run -d chrome '
+            '--dart-define=ANILIST_CLIENT_ID=...',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: Tokens.space12),
+        ] else ...[
+          FilledButton.icon(
+            onPressed: () => _loginWithAniList(AppConfig.anilistLoginUri()),
+            icon: const Icon(Icons.login, size: 18),
+            label: const Text('Login with AniList'),
+          ),
+          const SizedBox(height: Tokens.space8),
+          Text(
+            'You will be sent to anilist.co to approve, then returned here automatically.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: Tokens.space12),
+        ],
+        Text(
+          'Or paste an access token manually:',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: Tokens.space8),
+        TextField(
+          controller: _tokenController,
+          decoration: InputDecoration(
+            hintText: 'access_token or full redirect URL',
+            errorText: _tokenError,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          minLines: 1,
+          maxLines: 2,
+        ),
+        const SizedBox(height: Tokens.space8),
+        OutlinedButton.icon(
+          onPressed: _savingToken ? null : _savePastedToken,
+          icon: _savingToken
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.key_outlined, size: 18),
+          label: Text(_savingToken ? 'Verifying…' : 'Save token'),
+        ),
+        if (auth.hasError) ...[
+          const SizedBox(height: Tokens.space8),
+          Text(
+            '${auth.error}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
       ],
     );
   }

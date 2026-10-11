@@ -1,5 +1,5 @@
-import 'package:dartotsu_web/data/anilist/anilist_mapper.dart';
-import 'package:dartotsu_web/data/models/media.dart';
+import 'package:sandwich/data/anilist/anilist_mapper.dart';
+import 'package:sandwich/data/models/media.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Map<String, dynamic> _sampleMediaJson() => {

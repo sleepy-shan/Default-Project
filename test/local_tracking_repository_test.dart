@@ -1,6 +1,6 @@
-import 'package:dartotsu_web/data/models/media.dart';
-import 'package:dartotsu_web/data/models/media_entry.dart';
-import 'package:dartotsu_web/data/repositories/tracking_repository.dart';
+import 'package:sandwich/data/models/media.dart';
+import 'package:sandwich/data/models/media_entry.dart';
+import 'package:sandwich/data/repositories/tracking_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

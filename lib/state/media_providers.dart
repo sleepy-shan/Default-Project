@@ -5,6 +5,10 @@ import '../data/models/media.dart';
 import '../data/repositories/media_repository.dart';
 
 /// Shared AniList HTTP client and repository.
+///
+/// The client is intentionally kept alive for the app lifetime (single
+/// socket pool); [MediaRepository] adds its own TTL cache on top so
+/// repeated rail/detail visits do not burn the 90 req/min AniList budget.
 final aniListClientProvider = Provider<AniListClient>((ref) {
   final client = AniListClient();
   ref.onDispose(client.close);
@@ -12,16 +16,20 @@ final aniListClientProvider = Provider<AniListClient>((ref) {
 });
 
 final mediaRepositoryProvider = Provider<MediaRepository>((ref) {
+  // `read` would also work; `watch` keeps rails in sync if the client
+  // is ever overridden in tests.
   return MediaRepository(ref.watch(aniListClientProvider));
 });
 
 /// Home page rails.
+///
+/// `autoDispose` so rails are released when the home screen is gone;
+/// data is re-fetched on return (backed by the repository TTL cache,
+/// so revisits are usually instant and network-free).
 enum MediaRail { trendingAnime, trendingManga, popularThisSeason }
 
-final mediaRailProvider = FutureProvider.family<MediaPage, MediaRail>((
-  ref,
-  rail,
-) async {
+final mediaRailProvider =
+    FutureProvider.family.autoDispose<MediaPage, MediaRail>((ref, rail) async {
   final repo = ref.watch(mediaRepositoryProvider);
   switch (rail) {
     case MediaRail.trendingAnime:

@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_motion.dart';
+import '../../core/theme/app_scroll.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../data/models/media.dart';
 import '../../data/models/media_entry.dart';
 import 'poster_card.dart';
+import 'rails.dart';
 import 'state_views.dart';
 
 /// Grid of posters for tracked entries, with a progress bar under each.
+///
+/// Rendering: `GridView.builder` with repaint boundaries and no keep-alives
+/// for offscreen tiles; images use gapless playback to avoid flicker.
 class MediaEntryGrid extends StatelessWidget {
   const MediaEntryGrid({required this.entries, super.key});
 
@@ -22,6 +28,9 @@ class MediaEntryGrid extends StatelessWidget {
         final tileHeight = tileWidth / Tokens.posterAspect + 76;
 
         return GridView.builder(
+          physics: const SmoothScrollPhysics(),
+          addAutomaticKeepAlives: false,
+          addRepaintBoundaries: true,
           padding: const EdgeInsets.only(
             left: Tokens.space16,
             right: Tokens.space16,
@@ -34,7 +43,12 @@ class MediaEntryGrid extends StatelessWidget {
             childAspectRatio: tileWidth / tileHeight,
           ),
           itemCount: entries.length,
-          itemBuilder: (context, index) => _EntryTile(entry: entries[index]),
+          itemBuilder: (context, index) => RevealOnScroll(
+            index: index,
+            child: RepaintBoundary(
+              child: _EntryTile(entry: entries[index]),
+            ),
+          ),
         );
       },
     );
@@ -51,58 +65,86 @@ class _EntryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final fraction = entry.fraction;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Tokens.radiusMd),
-            child: entry.coverUrl == null || entry.coverUrl!.isEmpty
-                ? ColoredBox(color: theme.disabledColor.withValues(alpha: 0.12))
-                : Image.network(
-                    entry.coverUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) => ColoredBox(
-                      color: theme.disabledColor.withValues(alpha: 0.12),
-                    ),
-                  ),
-          ),
-        ),
-        const SizedBox(height: Tokens.space8),
-        Text(
-          entry.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleMedium,
-        ),
-        const SizedBox(height: Tokens.space2),
-        Text(
-          '${entry.progress}'
-          '${entry.totalUnits != null ? '/${entry.totalUnits}' : ''}'
-          ' ${entry.unit}${entry.progress == 1 ? '' : 's'}',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        if (fraction != null) ...[
-          const SizedBox(height: Tokens.space4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
-            child: LinearProgressIndicator(
-              value: fraction,
-              minHeight: 4,
-              backgroundColor: theme.dividerColor,
-              valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
+    return HoverLift(
+      lift: 4,
+      scale: 1.015,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Tokens.radiusLg),
+                boxShadow: Tokens.cardShadow(theme.brightness),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(Tokens.radiusLg),
+                child: entry.coverUrl == null || entry.coverUrl!.isEmpty
+                    ? ColoredBox(
+                        color: theme.disabledColor.withValues(alpha: 0.12),
+                      )
+                    : Image.network(
+                        entry.coverUrl!,
+                        fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                        filterQuality: FilterQuality.low,
+                        errorBuilder: (context, error, stack) => ColoredBox(
+                          color: theme.disabledColor.withValues(alpha: 0.12),
+                        ),
+                      ),
+              ),
             ),
           ),
+          const SizedBox(height: Tokens.space8),
+          Text(
+            entry.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: Tokens.space2),
+          Text(
+            '${entry.progress}'
+            '${entry.totalUnits != null ? '/${entry.totalUnits}' : ''}'
+            ' ${entry.unit}${entry.progress == 1 ? '' : 's'}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (fraction != null) ...[
+            const SizedBox(height: Tokens.space4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Tokens.radiusPill),
+              // Animate progress changes instead of jumping.
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: fraction),
+                duration: Tokens.durationMedium,
+                curve: Tokens.curveSmooth,
+                builder: (context, value, _) => LinearProgressIndicator(
+                  value: value,
+                  minHeight: 5,
+                  backgroundColor: theme.dividerColor,
+                  valueColor: AlwaysStoppedAnimation(
+                    theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
-/// Adaptive poster grid with infinite-scroll support.
-class MediaGrid extends StatelessWidget {
+/// Adaptive poster grid with infinite-scroll support + animated back-to-top.
+///
+/// - End-reached is throttled (500ms) so fast flings fire one `loadMore`.
+/// - A [ScrollController] is owned here and disposed properly; it drives
+///   the floating back-to-top button (fade + scale entrance).
+class MediaGrid extends StatefulWidget {
   const MediaGrid({
     required this.items,
     this.onEndReached,
@@ -115,6 +157,49 @@ class MediaGrid extends StatelessWidget {
   final bool hasMore;
 
   @override
+  State<MediaGrid> createState() => _MediaGridState();
+}
+
+class _MediaGridState extends State<MediaGrid> {
+  late final ScrollController _controller;
+  DateTime _lastEndReached = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _showTop = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    _controller.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final show = _controller.hasClients && _controller.offset > 900;
+    if (show != _showTop && mounted) setState(() => _showTop = show);
+    if (widget.hasMore && widget.onEndReached != null) {
+      if (!_controller.hasClients) return;
+      final max = _controller.position.maxScrollExtent;
+      final pixels = _controller.offset;
+      if (max > 0 && pixels >= max - 320) {
+        final now = DateTime.now();
+        // Throttle: at most one load per 500ms.
+        if (now.difference(_lastEndReached) >
+            const Duration(milliseconds: 500)) {
+          _lastEndReached = now;
+          widget.onEndReached!();
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -123,28 +208,134 @@ class MediaGrid extends StatelessWidget {
             (constraints.maxWidth - (columns - 1) * Tokens.space12) / columns;
         final tileHeight = tileWidth / Tokens.posterAspect + 52;
 
-        return NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (!hasMore || onEndReached == null) return false;
-            final metrics = notification.metrics;
-            if (metrics.maxScrollExtent > 0 &&
-                metrics.pixels >= metrics.maxScrollExtent - 320) {
-              onEndReached!();
-            }
-            return false;
-          },
-          child: GridView.builder(
-            padding: const EdgeInsets.only(
-              left: Tokens.space16,
-              right: Tokens.space16,
-              bottom: Tokens.space32,
+        return Stack(
+          children: [
+            GridView.builder(
+              controller: _controller,
+              physics: const SmoothScrollPhysics(),
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: true,
+              padding: const EdgeInsets.only(
+                left: Tokens.space16,
+                right: Tokens.space16,
+                bottom: Tokens.space32,
+              ),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisSpacing: Tokens.space16,
+                crossAxisSpacing: Tokens.space12,
+                childAspectRatio: tileWidth / tileHeight,
+              ),
+              itemCount: widget.items.length + (widget.hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= widget.items.length) {
+                  return const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                }
+                return RevealOnScroll(
+                  index: index,
+                  child: PosterCard(media: widget.items[index]),
+                );
+              },
             ),
+            Positioned(
+              right: 16,
+              bottom: 24,
+              child: BackToTopButton(
+                visible: _showTop,
+                onPressed: () {
+                  if (_controller.hasClients) {
+                    _controller.smoothTo(0);
+                  }
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Horizontal rail used on the dashboard — glides with smooth physics,
+/// arrow buttons, and edge fades on desktop.
+///
+/// Uses [ArrowRail] with a fixed `itemExtent` (148 + 12 separator = 160)
+/// so the viewport skips child measurement.
+class MediaRailList extends StatelessWidget {
+  const MediaRailList({required this.items, super.key});
+
+  final List<Media> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return ArrowRail(
+      height: 252,
+      itemCount: items.length,
+      // 148px card + 12px separator.
+      itemExtent: 160,
+      itemBuilder: (context, index) => SizedBox(
+        width: 148,
+        child: RevealOnScroll(
+          index: index,
+          child: MediaRailCard(media: items[index]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sliver poster grid for use inside a parent [CustomScrollView].
+///
+/// Unlike [MediaGrid] (own `GridView` + own controller = nested scrollable),
+/// this is a true sliver: one scrollable, no gesture fights, sticky headers
+/// work, and overscroll/glow behave as a single surface.
+///
+/// [columnsForWidth] lets tests override the responsive breakpoints.
+class SliverPosterGrid extends StatelessWidget {
+  const SliverPosterGrid({
+    required this.items,
+    this.hasMore = false,
+    this.columnsForWidth = posterColumns,
+    super.key,
+  });
+
+  final List<Media> items;
+  final bool hasMore;
+  final int Function(double width) columnsForWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.crossAxisExtent;
+        final columns = columnsForWidth(width);
+        final tileWidth =
+            (width - (columns - 1) * Tokens.space12 - Tokens.space32) /
+                columns;
+        final tileHeight = tileWidth / Tokens.posterAspect + 52;
+        return SliverPadding(
+          padding: const EdgeInsets.only(
+            left: Tokens.space16,
+            right: Tokens.space16,
+            bottom: Tokens.space32,
+          ),
+          sliver: SliverGrid.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
               mainAxisSpacing: Tokens.space16,
               crossAxisSpacing: Tokens.space12,
               childAspectRatio: tileWidth / tileHeight,
             ),
+            // No keep-alives for offscreen posters; repaint boundaries
+            // isolate image repaints during hover/reveal.
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             itemCount: items.length + (hasMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= items.length) {
@@ -156,7 +347,10 @@ class MediaGrid extends StatelessWidget {
                   ),
                 );
               }
-              return PosterCard(media: items[index]);
+              return RevealOnScroll(
+                index: index,
+                child: PosterCard(media: items[index]),
+              );
             },
           ),
         );
@@ -165,23 +359,32 @@ class MediaGrid extends StatelessWidget {
   }
 }
 
-/// Horizontal rail used on the dashboard.
-class MediaRailList extends StatelessWidget {
-  const MediaRailList({required this.items, super.key});
+/// Sliver list of tracked entries for My Lists (single scrollable).
+///
+/// Takes an [itemBuilder] so `media_grid.dart` stays decoupled from the
+/// `EntryRow` defined in `my_lists_screen.dart` (no import cycle).
+class SliverEntryList extends StatelessWidget {
+  const SliverEntryList({
+    required this.itemCount,
+    required this.itemBuilder,
+    super.key,
+  });
 
-  final List<Media> items;
+  final int itemCount;
+  final Widget Function(BuildContext context, int index) itemBuilder;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 232,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-        itemCount: items.length,
-        separatorBuilder: (context, index) =>
-            const SizedBox(width: Tokens.space12),
-        itemBuilder: (context, index) => MediaRailCard(media: items[index]),
+    return SliverPadding(
+      padding: const EdgeInsets.only(bottom: Tokens.space32),
+      sliver: SliverList.builder(
+        addAutomaticKeepAlives: false,
+        addRepaintBoundaries: true,
+        itemCount: itemCount,
+        itemBuilder: (context, index) => RevealOnScroll(
+          index: index,
+          child: itemBuilder(context, index),
+        ),
       ),
     );
   }

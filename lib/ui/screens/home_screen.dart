@@ -1,51 +1,509 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_scroll.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/theme/responsive.dart';
+import '../../core/utils/formatters.dart';
+import '../../data/models/media.dart';
 import '../../data/models/media_entry.dart';
 import '../../state/media_providers.dart';
 import '../../state/my_lists_controller.dart';
+import '../components/app_logo.dart';
 import '../components/media_grid.dart';
+import '../components/rails.dart';
 import '../components/section_header.dart';
 import '../components/state_views.dart';
 import '../router/app_router.dart';
 
-/// Dashboard: continue rail plus trending rails from AniList.
+/// Dashboard: spotlight hero + continue rail + trending rails.
+///
+/// Uses a [CustomScrollView] with slivers so the whole page glides as one
+/// smooth scroll surface, with a parallax spotlight header on top.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final continueEntries = ref.watch(continueWatchingProvider);
-    return ListView(
-      padding: const EdgeInsets.only(bottom: Tokens.space32),
-      children: [
+
+    return CustomScrollView(
+      physics: const SmoothScrollPhysics(),
+      slivers: [
+        // ---- Spotlight hero -----------------------------------------
+        const SliverToBoxAdapter(child: _SpotlightHero()),
+        // ---- Continue -----------------------------------------------
         if (continueEntries.isNotEmpty) ...[
-          SectionHeader(
-            title: 'Continue watching / reading',
-            subtitle: 'Jump back into what you were tracking',
-            actionLabel: 'My List',
-            actionPath: Routes.lists,
+          SliverToBoxAdapter(
+            child: SectionHeader(
+              title: 'Continue watching / reading',
+              subtitle: 'Jump back into what you were tracking',
+              eyebrow: 'Pick up',
+              actionLabel: 'My List',
+              actionPath: Routes.lists,
+            ),
           ),
-          _ContinueRail(entries: continueEntries),
+          SliverToBoxAdapter(
+            child: _ContinueRail(entries: continueEntries),
+          ),
         ],
-        _RailSection(
-          title: 'Trending anime',
-          subtitle: 'What AniList users are watching this week',
-          rail: MediaRail.trendingAnime,
-          seeAllPath: Routes.anime,
+        // ---- Genre quick-jump (unique strip) -------------------------
+        const SliverToBoxAdapter(child: _GenreStrip()),
+        // ---- Rails ----------------------------------------------------
+        SliverToBoxAdapter(
+          child: _RailSection(
+            title: 'Trending anime',
+            subtitle: 'What AniList users are watching this week',
+            eyebrow: 'Hot now',
+            rail: MediaRail.trendingAnime,
+            seeAllPath: Routes.anime,
+          ),
         ),
-        _RailSection(
-          title: 'Popular this year',
-          subtitle: 'The hottest anime releases of ${DateTime.now().year}',
-          rail: MediaRail.popularThisSeason,
-          seeAllPath: Routes.anime,
+        SliverToBoxAdapter(
+          child: _RailSection(
+            title: 'Popular this season',
+            subtitle: 'The standout anime of the current season',
+            eyebrow: 'Seasonal',
+            rail: MediaRail.popularThisSeason,
+            seeAllPath: Routes.anime,
+          ),
         ),
-        _RailSection(
-          title: 'Trending manga',
-          subtitle: 'What AniList users are reading this week',
-          rail: MediaRail.trendingManga,
-          seeAllPath: Routes.manga,
+        SliverToBoxAdapter(
+          child: _RailSection(
+            title: 'Trending manga',
+            subtitle: 'What AniList users are reading this week',
+            eyebrow: 'Reading',
+            rail: MediaRail.trendingManga,
+            seeAllPath: Routes.manga,
+          ),
+        ),
+        const SliverToBoxAdapter(child: _HomeFooter()),
+      ],
+    );
+  }
+}
+
+/// Cinematic spotlight: the #1 trending anime as a full-bleed banner with
+/// gradient scrims, glass meta chips and CTA buttons.
+class _SpotlightHero extends ConsumerWidget {
+  const _SpotlightHero();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(mediaRailProvider(MediaRail.trendingAnime));
+    return async.when(
+      loading: () => const LoadingHero(),
+      error: (e, s) => const SizedBox.shrink(),
+      data: (page) {
+        if (page.items.isEmpty) return const SizedBox.shrink();
+        return _HeroCard(media: page.items.first, rank: 1);
+      },
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({required this.media, required this.rank});
+
+  final Media media;
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 840;
+    final bg = media.bannerUrl?.isNotEmpty == true
+        ? media.bannerUrl!
+        : media.coverUrl;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      child: RevealOnScroll(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(Tokens.radiusXl),
+          child: Stack(
+            children: [
+              // Backdrop.
+              if (bg.isNotEmpty)
+                Positioned.fill(
+                  child: Image.network(
+                    bg,
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) => Container(
+                      decoration: const BoxDecoration(
+                        gradient: Tokens.heroGradient,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: Tokens.heroGradient,
+                    ),
+                  ),
+                ),
+              // Scrims.
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.82),
+                        Colors.black.withValues(alpha: 0.45),
+                        Colors.black.withValues(alpha: 0.05),
+                      ],
+                      stops: const [0.0, 0.55, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Tokens.brand.withValues(alpha: 0.22),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.35),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Content.
+              Padding(
+                padding: EdgeInsets.all(isWide ? 32 : 20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (isWide) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(Tokens.radiusLg),
+                        child: media.coverUrl.isEmpty
+                            ? const SizedBox(width: 150, height: 215)
+                            : Image.network(
+                                media.coverUrl,
+                                width: 150,
+                                height: 215,
+                                fit: BoxFit.cover,
+                              ),
+                      ),
+                      const SizedBox(width: 24),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Wrap so badges never clip on 320px phones.
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: Tokens.brandGradient,
+                                  borderRadius: BorderRadius.circular(
+                                    Tokens.radiusPill,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.local_fire_department_rounded,
+                                      size: 13,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'SPOTLIGHT #$rank • TRENDING',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.2,
+                                        shadows: [
+                                          Shadow(
+                                            blurRadius: 8,
+                                            color: Color(0x88000000),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (media.averageScore != null &&
+                                  media.averageScore! > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(
+                                      Tokens.radiusPill,
+                                    ),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.star_rounded,
+                                        size: 14,
+                                        color: Tokens.warning,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        Formatters.score(media.averageScore),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          shadows: [
+                                            Shadow(
+                                              blurRadius: 8,
+                                              color: Color(0x88000000),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            media.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: (isWide
+                                    ? theme.textTheme.displaySmall
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              height: 1.1,
+                              shadows: const [
+                                Shadow(
+                                  blurRadius: 12,
+                                  color: Color(0x99000000),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (media.genres.isNotEmpty)
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (final g in media.genres.take(4))
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(
+                                        Tokens.radiusPill,
+                                      ),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.18,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      g,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              _HeroButton(
+                                label: 'View details',
+                                icon: Icons.play_arrow_rounded,
+                                filled: true,
+                                onTap: () => context.go(
+                                  Routes.mediaDetail(media.type, media.id),
+                                ),
+                              ),
+                              _HeroButton(
+                                label: 'Browse anime',
+                                icon: Icons.explore_outlined,
+                                filled: false,
+                                onTap: () => context.go(Routes.anime),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroButton extends StatelessWidget {
+  const _HeroButton({
+    required this.label,
+    required this.icon,
+    required this.filled,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool filled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (filled) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: Tokens.brandGradient,
+          borderRadius: BorderRadius.circular(Tokens.radiusPill),
+          boxShadow: Tokens.glowShadow(Theme.of(context).colorScheme.primary),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 12,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 18, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
+        backgroundColor: Colors.white.withValues(alpha: 0.08),
+      ),
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+    );
+  }
+}
+
+/// Quick genre jump strip — short static content, so `StaticStrip`
+/// (`SingleChildScrollView + Row`) instead of a virtualized viewport.
+class _GenreStrip extends StatelessWidget {
+  const _GenreStrip();
+
+  static const _genres = [
+    ('Action', Icons.bolt_outlined),
+    ('Romance', Icons.favorite_outline),
+    ('Fantasy', Icons.auto_awesome_outlined),
+    ('Sci-Fi', Icons.rocket_launch_outlined),
+    ('Comedy', Icons.sentiment_satisfied_alt_outlined),
+    ('Drama', Icons.theater_comedy_outlined),
+    ('Horror', Icons.dark_mode_outlined),
+    ('Sports', Icons.sports_soccer_outlined),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionHeader(
+          title: 'Browse by vibe',
+          subtitle: 'Pick a genre to jump into browse with a filter',
+          eyebrow: 'Genres',
+        ),
+        StaticStrip(
+          height: 44,
+          children: [
+            for (var i = 0; i < _genres.length; i++)
+              RevealOnScroll(
+                index: i,
+                child: Builder(
+                  builder: (context) {
+                    final (label, icon) = _genres[i];
+                    return ActionChip(
+                      avatar: Icon(icon, size: 16),
+                      label: Text(label),
+                      onPressed: () => context.go(Routes.searchWith(label)),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
+          child: Text(
+            'Tip: drag, swipe, or use the arrows — rails glide with smooth physics.',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       ],
     );
@@ -59,12 +517,14 @@ class _RailSection extends ConsumerWidget {
     required this.subtitle,
     required this.rail,
     required this.seeAllPath,
+    this.eyebrow,
   });
 
   final String title;
   final String subtitle;
   final MediaRail rail;
   final String seeAllPath;
+  final String? eyebrow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -75,21 +535,14 @@ class _RailSection extends ConsumerWidget {
         SectionHeader(
           title: title,
           subtitle: subtitle,
+          eyebrow: eyebrow,
           actionLabel: 'See all',
           actionPath: seeAllPath,
         ),
         SizedBox(
-          height: 232,
+          height: 252,
           child: async.when(
-            loading: () => ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-              itemCount: 5,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(width: Tokens.space12),
-              itemBuilder: (context, index) =>
-                  const SizedBox(width: 148, child: SkeletonTile(height: 232)),
-            ),
+            loading: () => const LoadingRail(),
             error: (error, stack) => _RailError(
               onRetry: () => ref.invalidate(mediaRailProvider(rail)),
             ),
@@ -142,6 +595,8 @@ class _RailError extends StatelessWidget {
 }
 
 /// "Continue" rail: entry poster + progress + a one-tap increment.
+///
+/// Virtualized [ArrowRail] with fixed extent (300 + 12 = 312) + arrows.
 class _ContinueRail extends ConsumerWidget {
   const _ContinueRail({required this.entries});
 
@@ -149,19 +604,22 @@ class _ContinueRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      height: 176,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: Tokens.space16),
-        itemCount: entries.length,
-        separatorBuilder: (context, index) =>
-            const SizedBox(width: Tokens.space12),
-        itemBuilder: (context, index) {
-          final entry = entries[index];
-          return _ContinueCard(entry: entry);
-        },
-      ),
+    // Narrow phones get a slimmer card so 320px viewports still peek next.
+    final cardWidth = context.isPhone ? 260.0 : 300.0;
+    return ArrowRail(
+      height: 148,
+      itemCount: entries.length,
+      itemExtent: cardWidth + 12,
+      itemBuilder: (context, index) {
+        final entry = entries[index];
+        return SizedBox(
+          width: cardWidth,
+          child: RevealOnScroll(
+            index: index,
+            child: _ContinueCard(entry: entry),
+          ),
+        );
+      },
     );
   }
 }
@@ -175,79 +633,174 @@ class _ContinueCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final fraction = entry.fraction;
-    final width = 280.0;
+    const width = 300.0;
     return SizedBox(
       width: width,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(Tokens.space8),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(Tokens.radiusSm),
-                child: SizedBox(
-                  width: 56,
-                  height: 84,
-                  child: entry.coverUrl == null || entry.coverUrl!.isEmpty
-                      ? ColoredBox(
-                          color: theme.disabledColor.withValues(alpha: 0.12),
-                        )
-                      : Image.network(
-                          entry.coverUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stack) => ColoredBox(
+      child: HoverLift(
+        lift: 4,
+        scale: 1.015,
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(Tokens.space12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(Tokens.radiusMd),
+                  child: SizedBox(
+                    width: 58,
+                    height: 86,
+                    child: entry.coverUrl == null || entry.coverUrl!.isEmpty
+                        ? ColoredBox(
                             color: theme.disabledColor.withValues(alpha: 0.12),
+                          )
+                        : Image.network(
+                            entry.coverUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stack) => ColoredBox(
+                              color: theme.disabledColor.withValues(alpha: 0.12),
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: Tokens.space12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: Tokens.brandGradient,
+                          borderRadius: BorderRadius.circular(
+                            Tokens.radiusPill,
                           ),
                         ),
-                ),
-              ),
-              const SizedBox(width: Tokens.space8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      entry.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: Tokens.space2),
-                    Text(
-                      '${entry.progress}'
-                      '${entry.totalUnits != null ? '/${entry.totalUnits}' : ''}'
-                      ' ${entry.unit}s',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    if (fraction != null) ...[
-                      const SizedBox(height: Tokens.space4),
-                      LinearProgressIndicator(
-                        value: fraction,
-                        minHeight: 4,
-                        backgroundColor: theme.dividerColor,
-                        valueColor: AlwaysStoppedAnimation(
-                          theme.colorScheme.primary,
+                        child: Text(
+                          entry.status.label.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                          ),
                         ),
                       ),
+                      const SizedBox(height: Tokens.space4),
+                      Text(
+                        entry.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: Tokens.space2),
+                      Text(
+                        '${entry.progress}'
+                        '${entry.totalUnits != null ? '/${entry.totalUnits}' : ''}'
+                        ' ${entry.unit}s',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (fraction != null) ...[
+                        const SizedBox(height: Tokens.space8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            Tokens.radiusPill,
+                          ),
+                          child: LinearProgressIndicator(
+                            value: fraction,
+                            minHeight: 5,
+                            backgroundColor: theme.dividerColor,
+                            valueColor: AlwaysStoppedAnimation(
+                              theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              IconButton.filledTonal(
-                tooltip: 'Mark one more ${entry.unit} watched',
-                icon: const Icon(Icons.add, size: 18),
-                onPressed: () async {
-                  await ref
-                      .read(myListsControllerProvider.notifier)
-                      .incrementProgress(entry.mediaId);
-                },
-              ),
+                const SizedBox(width: Tokens.space8),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: Tokens.brandGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: Tokens.glowShadow(theme.colorScheme.primary),
+                  ),
+                  child: IconButton.filledTonal(
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                    ),
+                    tooltip: 'Mark one more ${entry.unit} watched',
+                    icon: const Icon(Icons.add, size: 18),
+                    onPressed: () async {
+                      await ref
+                          .read(myListsControllerProvider.notifier)
+                          .incrementProgress(entry.mediaId);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeFooter extends StatelessWidget {
+  const _HomeFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 32, 16, 96),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.12),
+              theme.colorScheme.secondary.withValues(alpha: 0.08),
             ],
           ),
+          borderRadius: BorderRadius.circular(Tokens.radiusXl),
+          border: Border.all(color: theme.dividerColor),
+        ),
+        child: Row(
+          children: [
+            AppLogo(size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sandwich • track what you love',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    'Metadata & artwork by AniList. Smooth scrolling, glass UI, zero clutter.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
