@@ -1,5 +1,6 @@
 import '../models/airing_schedule.dart';
 import '../models/media.dart';
+import '../models/people.dart';
 
 /// Converts AniList JSON payloads into app models.
 ///
@@ -194,8 +195,122 @@ abstract final class AniListMapper {
             coverUrl: AniListMapper._coverUrl(mediaMap['coverImage'] as Map?),
             episode: (item['episode'] as num?)?.toInt() ?? 0,
             airingAt: (item['airingAt'] as num?)?.toInt() ?? 0,
+            totalEpisodes: (mediaMap['episodes'] as num?)?.toInt(),
+            averageScore: (mediaMap['averageScore'] as num?)?.toInt(),
           );
         })
         .toList(growable: false);
+  }
+
+  /// Parses a `Page.characters` payload for the search tab.
+  static List<SearchCharacter> characters(Object? raw) {
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) {
+          final map = item.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+          final id = (map['id'] as num?)?.toInt();
+          if (id == null) return null;
+          final name = (map['name'] as Map?)?.map(
+                (key, value) => MapEntry(key.toString(), value),
+              ) ??
+              const {};
+          final full = (name['full'] as String?)?.trim() ?? '';
+          if (full.isEmpty) return null;
+          final image = (map['image'] as Map?)?.map(
+                (key, value) => MapEntry(key.toString(), value),
+              ) ??
+              const {};
+          return SearchCharacter(
+            id: id,
+            nameFull: full,
+            nameNative: (name['native'] as String?)?.trim(),
+            imageUrl: (image['large'] as String?)?.trim() ?? '',
+            favourites: (map['favourites'] as num?)?.toInt() ?? 0,
+          );
+        })
+        .whereType<SearchCharacter>()
+        .toList(growable: false);
+  }
+
+  /// Parses a `Page.staff` payload for the search tab.
+  static List<SearchStaff> staff(Object? raw) {
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) {
+          final map = item.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+          final id = (map['id'] as num?)?.toInt();
+          if (id == null) return null;
+          final name = (map['name'] as Map?)?.map(
+                (key, value) => MapEntry(key.toString(), value),
+              ) ??
+              const {};
+          final full = (name['full'] as String?)?.trim() ?? '';
+          if (full.isEmpty) return null;
+          final image = (map['image'] as Map?)?.map(
+                (key, value) => MapEntry(key.toString(), value),
+              ) ??
+              const {};
+          final occupations = (map['primaryOccupations'] as List?)
+                  ?.map((e) => e.toString().replaceAll('_', ' '))
+                  .where((e) => e.trim().isNotEmpty)
+                  .toList(growable: false) ??
+              const [];
+          return SearchStaff(
+            id: id,
+            nameFull: full,
+            nameNative: (name['native'] as String?)?.trim(),
+            imageUrl: (image['large'] as String?)?.trim() ?? '',
+            favourites: (map['favourites'] as num?)?.toInt() ?? 0,
+            role: occupations.join(' · '),
+          );
+        })
+        .whereType<SearchStaff>()
+        .toList(growable: false);
+  }
+
+  /// Parses a `Page.studios` payload for the search tab.
+  static List<SearchStudio> studios(Object? raw) {
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) {
+          final map = item.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+          final id = (map['id'] as num?)?.toInt();
+          if (id == null) return null;
+          final name = (map['name'] as String?)?.trim() ?? '';
+          if (name.isEmpty) return null;
+          return SearchStudio(
+            id: id,
+            name: name,
+            favourites: (map['favourites'] as num?)?.toInt() ?? 0,
+            isAnimationStudio: map['isAnimationStudio'] != false,
+          );
+        })
+        .whereType<SearchStudio>()
+        .toList(growable: false);
+  }
+
+  /// Reads `Page.pageInfo` for the people/studio search endpoints.
+  static ({int page, bool hasNextPage}) pageInfo(
+    Object? raw,
+    int fallbackPage,
+  ) {
+    if (raw is! Map) return (page: fallbackPage, hasNextPage: false);
+    final info = (raw['pageInfo'] as Map?)?.map(
+          (key, value) => MapEntry(key.toString(), value),
+        ) ??
+        const {};
+    return (
+      page: (info['currentPage'] as num?)?.toInt() ?? fallbackPage,
+      hasNextPage: info['hasNextPage'] == true,
+    );
   }
 }

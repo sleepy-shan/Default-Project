@@ -24,7 +24,7 @@ class MediaEntryGrid extends StatelessWidget {
       builder: (context, constraints) {
         final columns = posterColumns(constraints.maxWidth);
         final tileWidth =
-            (constraints.maxWidth - (columns - 1) * Tokens.space12) / columns;
+            (constraints.maxWidth - (columns - 1) * Tokens.space16) / columns;
         final tileHeight = tileWidth / Tokens.posterAspect + 76;
 
         return GridView.builder(
@@ -38,8 +38,8 @@ class MediaEntryGrid extends StatelessWidget {
           ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: Tokens.space16,
-            crossAxisSpacing: Tokens.space12,
+            mainAxisSpacing: Tokens.space20,
+            crossAxisSpacing: Tokens.space16,
             childAspectRatio: tileWidth / tileHeight,
           ),
           itemCount: entries.length,
@@ -205,7 +205,7 @@ class _MediaGridState extends State<MediaGrid> {
       builder: (context, constraints) {
         final columns = posterColumns(constraints.maxWidth);
         final tileWidth =
-            (constraints.maxWidth - (columns - 1) * Tokens.space12) / columns;
+            (constraints.maxWidth - (columns - 1) * Tokens.space16) / columns;
         final tileHeight = tileWidth / Tokens.posterAspect + 52;
 
         return Stack(
@@ -222,8 +222,8 @@ class _MediaGridState extends State<MediaGrid> {
               ),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: columns,
-                mainAxisSpacing: Tokens.space16,
-                crossAxisSpacing: Tokens.space12,
+                mainAxisSpacing: Tokens.space20,
+                crossAxisSpacing: Tokens.space16,
                 childAspectRatio: tileWidth / tileHeight,
               ),
               itemCount: widget.items.length + (widget.hasMore ? 1 : 0),
@@ -279,10 +279,12 @@ class MediaRailList extends StatelessWidget {
       itemCount: items.length,
       // 148px card + 12px separator.
       itemExtent: 160,
+      // No RevealOnScroll here: inside a virtualized horizontal viewport
+      // recycled items would restart at opacity 0 + slide offset on every
+      // fast fling, causing white flash and overlapping cards.
       itemBuilder: (context, index) => SizedBox(
         width: 148,
-        child: RevealOnScroll(
-          index: index,
+        child: RepaintBoundary(
           child: MediaRailCard(media: items[index]),
         ),
       ),
@@ -316,7 +318,7 @@ class SliverPosterGrid extends StatelessWidget {
         final width = constraints.crossAxisExtent;
         final columns = columnsForWidth(width);
         final tileWidth =
-            (width - (columns - 1) * Tokens.space12 - Tokens.space32) /
+            (width - (columns - 1) * Tokens.space16 - Tokens.space32) /
                 columns;
         final tileHeight = tileWidth / Tokens.posterAspect + 52;
         return SliverPadding(
@@ -328,8 +330,8 @@ class SliverPosterGrid extends StatelessWidget {
           sliver: SliverGrid.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
-              mainAxisSpacing: Tokens.space16,
-              crossAxisSpacing: Tokens.space12,
+              mainAxisSpacing: Tokens.space20,
+              crossAxisSpacing: Tokens.space16,
               childAspectRatio: tileWidth / tileHeight,
             ),
             // No keep-alives for offscreen posters; repaint boundaries

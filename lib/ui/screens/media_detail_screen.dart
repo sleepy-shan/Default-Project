@@ -277,18 +277,29 @@ class _TitleRow extends StatelessWidget {
                   children: [
                     Chip(
                       visualDensity: VisualDensity.compact,
-                      label: Text(media.type.label),
+                      label: Text(
+                        media.type.label,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
                       avatar: Icon(
                         media.type == MediaType.anime
                             ? Icons.movie_outlined
                             : Icons.menu_book_outlined,
                         size: 16,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     if (media.format != MediaFormat.unknown)
                       Chip(
                         visualDensity: VisualDensity.compact,
-                        label: Text(media.format.label),
+                        label: Text(
+                          media.format.label,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
                       ),
                     if (statusEntry != null)
                       StatusBadge(
@@ -304,7 +315,12 @@ class _TitleRow extends StatelessWidget {
                           size: 16,
                           color: Tokens.warning,
                         ),
-                        label: Text(Formatters.score(media.averageScore)),
+                        label: Text(
+                          Formatters.score(media.averageScore),
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -361,8 +377,16 @@ class _Overview extends StatelessWidget {
             children: [
               for (final genre in media.genres)
                 ActionChip(
-                  label: Text(genre),
+                  label: Text(
+                    genre,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
+                  ),
                   visualDensity: VisualDensity.compact,
+                  backgroundColor: theme.chipTheme.backgroundColor,
+                  side: theme.chipTheme.side,
+                  labelStyle: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                  ),
                   onPressed: () {},
                 ),
             ],

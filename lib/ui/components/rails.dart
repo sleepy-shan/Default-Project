@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_scroll.dart';
 import '../../core/theme/design_tokens.dart';
 
 /// Horizontal rail with desktop affordances: arrow buttons, edge fades.
@@ -110,7 +109,6 @@ class _ArrowRailState extends State<ArrowRail> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
@@ -138,17 +136,7 @@ class _ArrowRailState extends State<ArrowRail> {
                         visible: _hovering || _canBack,
                         onTap: () => _step(-1),
                       ),
-                      Container(
-                        width: 28,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              scheme.surface.withValues(alpha: 0.9),
-                              scheme.surface.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      ),
+                      const SizedBox(width: 28),
                     ],
                   ),
                 ),
@@ -167,17 +155,7 @@ class _ArrowRailState extends State<ArrowRail> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 28,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              scheme.surface.withValues(alpha: 0.0),
-                              scheme.surface.withValues(alpha: 0.9),
-                            ],
-                          ),
-                        ),
-                      ),
+                      const SizedBox(width: 28),
                       _ArrowButton(
                         icon: Icons.chevron_right_rounded,
                         tooltip: 'Scroll forward',
@@ -202,7 +180,11 @@ class _ArrowRailState extends State<ArrowRail> {
         controller: _controller,
         scrollDirection: Axis.horizontal,
         primary: false,
-        physics: const SmoothScrollPhysics(),
+        // Clamping: no overscroll glow / white flash and no bounce-back
+        // spring on fast flings. Bouncing physics (SmoothScrollPhysics)
+        // caused overlap + back-and-forth on horizontal rails.
+        physics: const ClampingScrollPhysics(),
+        clipBehavior: Clip.hardEdge,
         addAutomaticKeepAlives: false,
         addRepaintBoundaries: true,
         padding: widget.padding,
@@ -218,7 +200,8 @@ class _ArrowRailState extends State<ArrowRail> {
       controller: _controller,
       scrollDirection: Axis.horizontal,
       primary: false,
-      physics: const SmoothScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
+      clipBehavior: Clip.hardEdge,
       addAutomaticKeepAlives: false,
       addRepaintBoundaries: true,
       padding: widget.padding,
@@ -245,7 +228,6 @@ class _ArrowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return AnimatedScale(
       scale: visible ? 1.0 : 0.6,
       duration: Tokens.durationFast,
@@ -255,12 +237,16 @@ class _ArrowButton extends StatelessWidget {
         child: Center(
           child: Container(
             decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: 0.92),
+              // Transparent dark glass — same in light and dark mode,
+              // lets the poster show through instead of a solid surface block.
+              color: Colors.black.withValues(alpha: 0.42),
               shape: BoxShape.circle,
-              border: Border.all(color: Theme.of(context).dividerColor),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.28),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.16),
+                  color: Colors.black.withValues(alpha: 0.22),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -268,7 +254,7 @@ class _ArrowButton extends StatelessWidget {
             ),
             child: IconButton(
               tooltip: tooltip,
-              icon: Icon(icon),
+              icon: Icon(icon, color: Colors.white),
               onPressed: onTap,
             ),
           ),
@@ -324,7 +310,8 @@ class _StaticStripState extends State<StaticStrip> {
         controller: _controller,
         scrollDirection: Axis.horizontal,
         primary: false,
-        physics: const SmoothScrollPhysics(),
+        physics: const ClampingScrollPhysics(),
+        clipBehavior: Clip.hardEdge,
         padding: widget.padding,
         child: Row(
           children: [

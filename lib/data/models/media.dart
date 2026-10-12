@@ -107,6 +107,7 @@ enum MediaSort {
   score('SCORE_DESC', 'Score'),
   favourites('FAVOURITES_DESC', 'Favorites'),
   startDate('START_DATE_DESC', 'Newest'),
+  updated('UPDATED_AT_DESC', 'Recently updated'),
   titleRomaji('TITLE_ROMAJI', 'A → Z');
 
   const MediaSort(this.wire, this.label);

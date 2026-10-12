@@ -9,6 +9,7 @@ import '../../data/models/media_entry.dart';
 import '../../state/load_state.dart';
 import '../../state/my_lists_controller.dart';
 import '../components/media_grid.dart';
+import '../components/app_footer.dart';
 import '../components/sliver_headers.dart';
 import '../components/status_badge.dart';
 import '../components/state_views.dart';
@@ -75,6 +76,7 @@ class _MyListsScreenState extends ConsumerState<MyListsScreen> {
               LoadStatus.error => const _ErrorSlivers(),
               LoadStatus.success => const _BodySlivers(),
             },
+            const SliverAppFooter(),
           ],
         ),
         Positioned(

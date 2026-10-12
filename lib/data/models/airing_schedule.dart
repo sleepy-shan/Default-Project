@@ -10,6 +10,8 @@ class AiringScheduleItem {
     required this.episode,
     required this.airingAt,
     this.coverUrl,
+    this.totalEpisodes,
+    this.averageScore,
   });
 
   final int id;
@@ -23,4 +25,10 @@ class AiringScheduleItem {
 
   /// Epoch seconds when the episode airs.
   final int airingAt;
+
+  /// Total episode count reported by AniList, when known.
+  final int? totalEpisodes;
+
+  /// AniList average score (0-100 scale), when known.
+  final int? averageScore;
 }

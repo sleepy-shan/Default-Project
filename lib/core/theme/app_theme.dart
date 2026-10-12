@@ -5,52 +5,52 @@ import 'design_tokens.dart';
 
 /// Light and dark [ThemeData] built from the design tokens.
 ///
-/// Signature look — "Ink wash":
-/// * Warm ink-tinted backgrounds with ember/ink aurora glows (painted
+/// Signature look — "Komorebi lagoon" (chill minimal):
+/// * Mist-tinted backgrounds with soft lagoon glows (painted
 ///   by [AppShell] behind the content).
-/// * 16-24px rounded cards with soft shadows + hairline borders.
-/// * Pill navigation with glowing indicator.
+/// * 10-16px rounded cards with soft shadows + hairline borders.
+/// * Flat docked top bar with underline tabs (no floating pill).
 /// * Fade+slide page transitions and a slim rounded scrollbar so every
 ///   scroll feels smooth.
 abstract final class AppTheme {
-  static ThemeData light([AppAccent accent = AppAccent.vermilion]) =>
+  static ThemeData light([AppAccent accent = AppAccent.lagoon]) =>
       _base(Brightness.light, accent);
-  static ThemeData dark([AppAccent accent = AppAccent.vermilion]) =>
+  static ThemeData dark([AppAccent accent = AppAccent.lagoon]) =>
       _base(Brightness.dark, accent);
 
   static ThemeData _base(Brightness brightness, AppAccent accent) {
     final bool isDark = brightness == Brightness.dark;
-    // Vermilion keeps the signature primary values so the Ikigai look is
-    // unchanged; other accents use the accessible M3 tonal primary derived
+    // Lagoon keeps the signature primary values so the Ikigai look is
+    // calm; other accents use the accessible M3 tonal primary derived
     // from the seed (white-on-primary contrast guaranteed by fromSeed).
     final seeded = ColorScheme.fromSeed(
       seedColor: accent.seed,
       brightness: brightness,
     );
-    final ColorScheme scheme = accent == AppAccent.vermilion
+    final ColorScheme scheme = accent == AppAccent.lagoon
         ? seeded.copyWith(
             primary: isDark ? Tokens.brandDark : Tokens.brand,
             secondary: Tokens.accent,
-            tertiary: const Color(0xFF8A8378),
+            tertiary: const Color(0xFF7D9B8A),
             surface: isDark
-                ? const Color(0xFF141724)
-                : const Color(0xFFF7F7FB),
+                ? const Color(0xFF131B1B)
+                : const Color(0xFFF4F7F5),
             error: Tokens.danger,
           )
         : seeded.copyWith(
             surface: isDark
-                ? const Color(0xFF141724)
-                : const Color(0xFFF7F7FB),
+                ? const Color(0xFF131B1B)
+                : const Color(0xFFF4F7F5),
             error: Tokens.danger,
           );
 
     final Color background = isDark
-        ? const Color(0xFF0B0D14)
-        : const Color(0xFFF2F3F8);
-    final Color card = isDark ? const Color(0xFF181B26) : Colors.white;
+        ? const Color(0xFF0B1212)
+        : const Color(0xFFEEF3F0);
+    final Color card = isDark ? const Color(0xFF151F1F) : Colors.white;
     final Color border = isDark
-        ? const Color(0xFF2A2E3D)
-        : const Color(0xFFE3E4EC);
+        ? const Color(0xFF26302F)
+        : const Color(0xFFDCE5E0);
 
     final baseTextTheme = isDark
         ? Typography.material2021().white
@@ -111,14 +111,31 @@ abstract final class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
+        brightness: brightness,
         backgroundColor: isDark
-            ? const Color(0xFF1F2330).withValues(alpha: 0.85)
+            ? const Color(0xFF1B2625).withValues(alpha: 0.85)
             : Colors.white,
-        selectedColor: scheme.primary.withValues(alpha: 0.16),
+        selectedColor: scheme.primary.withValues(alpha: 0.14),
+        secondarySelectedColor: scheme.secondaryContainer,
+        disabledColor: scheme.onSurface.withValues(alpha: 0.12),
         side: BorderSide(
           color: isDark ? Colors.white.withValues(alpha: 0.10) : border,
         ),
-        labelStyle: TypeScale.labelLarge,
+        // Explicit label colors: relying on Chip defaults left genre /
+        // category tag text near-invisible in dark mode (dark text on the
+        // dark chip background). Derive from the color scheme so contrast
+        // is guaranteed in both brightnesses. onSurface (not
+        // onSurfaceVariant) keeps small 13px semibold labels above 4.5:1
+        // on the dark chip fill.
+        labelStyle: TypeScale.labelLarge.copyWith(color: scheme.onSurface),
+        secondaryLabelStyle: TypeScale.labelLarge.copyWith(
+          color: scheme.onSecondaryContainer,
+        ),
+        checkmarkColor: scheme.primary,
+        deleteIconColor: scheme.onSurfaceVariant,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Tokens.radiusPill),
         ),
@@ -131,7 +148,7 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark
-            ? const Color(0xFF1F2330).withValues(alpha: 0.85)
+            ? const Color(0xFF1B2625).withValues(alpha: 0.85)
             : Colors.white,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: Tokens.space16,
@@ -139,16 +156,16 @@ abstract final class AppTheme {
         ),
         border: _inputBorder(
           isDark ? Colors.white.withValues(alpha: 0.10) : border,
-          radius: Tokens.radiusPill,
+          radius: Tokens.radiusMd,
         ),
         enabledBorder: _inputBorder(
           isDark ? Colors.white.withValues(alpha: 0.10) : border,
-          radius: Tokens.radiusPill,
+          radius: Tokens.radiusMd,
         ),
-        focusedBorder: _inputBorder(scheme.primary, width: 1.6, radius: Tokens.radiusPill),
-        errorBorder: _inputBorder(scheme.error, radius: Tokens.radiusPill),
+        focusedBorder: _inputBorder(scheme.primary, width: 1.5, radius: Tokens.radiusMd),
+        errorBorder: _inputBorder(scheme.error, radius: Tokens.radiusMd),
         focusedErrorBorder:
-            _inputBorder(scheme.error, width: 1.6, radius: Tokens.radiusPill),
+            _inputBorder(scheme.error, width: 1.5, radius: Tokens.radiusMd),
         hintStyle: TypeScale.bodyMedium.copyWith(
           color: scheme.onSurfaceVariant,
         ),
@@ -161,7 +178,7 @@ abstract final class AppTheme {
           minimumSize: const Size(0, Tokens.inputHeight),
           padding: const EdgeInsets.symmetric(horizontal: Tokens.space20),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            borderRadius: BorderRadius.circular(Tokens.radiusMd),
           ),
           textStyle: TypeScale.labelLarge.copyWith(
             fontWeight: FontWeight.w700,
@@ -177,7 +194,7 @@ abstract final class AppTheme {
             color: isDark ? Colors.white.withValues(alpha: 0.14) : border,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            borderRadius: BorderRadius.circular(Tokens.radiusMd),
           ),
           textStyle: TypeScale.labelLarge,
         ),
@@ -185,7 +202,7 @@ abstract final class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            borderRadius: BorderRadius.circular(Tokens.radiusMd),
           ),
         ),
       ),
@@ -194,7 +211,7 @@ abstract final class AppTheme {
           foregroundColor: scheme.primary,
           textStyle: TypeScale.labelLarge.copyWith(fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            borderRadius: BorderRadius.circular(Tokens.radiusMd),
           ),
         ),
       ),
@@ -202,14 +219,14 @@ abstract final class AppTheme {
         style: IconButton.styleFrom(
           minimumSize: const Size(Tokens.iconButtonSize, Tokens.iconButtonSize),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            borderRadius: BorderRadius.circular(Tokens.radiusMd),
           ),
         ),
       ),
       dropdownMenuTheme: DropdownMenuThemeData(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: isDark ? const Color(0xFF1F2330) : Colors.white,
+          fillColor: isDark ? const Color(0xFF1B2625) : Colors.white,
           border: _inputBorder(border, radius: Tokens.radiusMd),
           enabledBorder: _inputBorder(border, radius: Tokens.radiusMd),
         ),
@@ -220,19 +237,19 @@ abstract final class AppTheme {
           fontWeight: FontWeight.w700,
         ),
         unselectedLabelTextStyle: TypeScale.labelSmall,
-        indicatorColor: scheme.primary.withValues(alpha: 0.18),
+        indicatorColor: scheme.primary.withValues(alpha: 0.14),
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Tokens.radiusPill),
+          borderRadius: BorderRadius.circular(Tokens.radiusMd),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: isDark
-            ? const Color(0xFF12141C).withValues(alpha: 0.88)
-            : Colors.white.withValues(alpha: 0.88),
+            ? const Color(0xFF0E1515).withValues(alpha: 0.92)
+            : Colors.white.withValues(alpha: 0.92),
         elevation: 0,
-        indicatorColor: scheme.primary.withValues(alpha: 0.18),
+        indicatorColor: scheme.primary.withValues(alpha: 0.14),
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Tokens.radiusPill),
+          borderRadius: BorderRadius.circular(Tokens.radiusMd),
         ),
         labelTextStyle: WidgetStatePropertyAll(TypeScale.labelSmall),
       ),
@@ -251,8 +268,8 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: isDark
-            ? const Color(0xFF2A2E3D)
-            : const Color(0xFF1F2230),
+            ? const Color(0xFF26302F)
+            : const Color(0xFF14201F),
         contentTextStyle: TypeScale.bodyLarge.copyWith(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Tokens.radiusMd),
@@ -260,7 +277,7 @@ abstract final class AppTheme {
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2A2E3D) : const Color(0xFF1F2230),
+          color: isDark ? const Color(0xFF26302F) : const Color(0xFF14201F),
           borderRadius: BorderRadius.circular(Tokens.radiusSm),
         ),
         textStyle: TypeScale.bodyMedium.copyWith(color: Colors.white),

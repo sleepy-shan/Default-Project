@@ -8,6 +8,7 @@ import '../../data/models/media.dart';
 import '../../state/browse_controller.dart';
 import '../../state/load_state.dart';
 import '../components/media_grid.dart';
+import '../components/app_footer.dart';
 import '../components/sliver_headers.dart';
 import '../components/state_views.dart';
 import 'filters_sheet.dart';
@@ -15,9 +16,10 @@ import 'filters_sheet.dart';
 /// Browse screen shared by Anime and Manga (different [type]).
 ///
 /// Single-scrollable sliver version: one [CustomScrollView] owns the scroll,
-/// the toolbar scrolls away, active filters stick, and the grid is a true
-/// `SliverGrid` — no nested `GridView`, no gesture fights, sticky headers
-/// work, and infinite scroll fires from the outer controller (throttled).
+/// the title + filter bar scroll away, active filters stick, then a
+/// `Page N` pager sits above a true `SliverGrid` — no nested `GridView`,
+/// no gesture fights, and infinite scroll fires from the outer controller
+/// (throttled).
 class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({required this.type, super.key});
 
@@ -58,6 +60,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
     }
   }
 
+  void scrollToTop() {
+    if (_controller.hasClients) _controller.smoothTo(0);
+  }
+
   @override
   void dispose() {
     _controller
@@ -78,10 +84,11 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
           controller: _controller,
           physics: const SmoothScrollPhysics(),
           slivers: [
+            SliverToBoxAdapter(child: _Toolbar(type: widget.type)),
             SliverToBoxAdapter(
-              child: _Toolbar(
+              child: _FilterBar(
                 type: widget.type,
-                onFilterTap: () => _openFilters(context, ref),
+                onMoreTap: () => _openFilters(context, ref),
               ),
             ),
             if (hasFilters)
@@ -92,7 +99,9 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen> {
                   child: _ActiveFilters(type: widget.type),
                 ),
               ),
+            SliverToBoxAdapter(child: _PageNav(type: widget.type)),
             _GridSlivers(type: widget.type),
+            const SliverAppFooter(),
           ],
         ),
         Positioned(
@@ -188,23 +197,16 @@ class _GridSlivers extends ConsumerWidget {
   }
 }
 
-/// Title, sort control and the filter button.
+/// Title + result count.
 class _Toolbar extends ConsumerWidget {
-  const _Toolbar({required this.type, required this.onFilterTap});
+  const _Toolbar({required this.type});
 
   final MediaType type;
-  final VoidCallback onFilterTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isManga = type == MediaType.manga;
-    final sort = ref.watch(
-      browseControllerProvider(type).select((s) => s.query.sort),
-    );
-    final hasFilters = ref.watch(
-      browseControllerProvider(type).select((s) => s.query.hasFilters),
-    );
     final count = ref.watch(
       browseControllerProvider(type).select((s) => s.items.length),
     );
@@ -212,153 +214,384 @@ class _Toolbar extends ConsumerWidget {
       browseControllerProvider(type).select((s) => s.hasNextPage),
     );
 
-    final titleBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 4,
-              height: 24,
-              decoration: BoxDecoration(
-                gradient: Tokens.brandGradient,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            const SizedBox(width: Tokens.space8),
-            Text(
-              isManga ? 'Manga' : 'Anime',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(width: Tokens.space8),
-            AnimatedSwitcher(
-              duration: Tokens.durationFast,
-              transitionBuilder: (child, animation) => ScaleTransition(
-                scale: animation,
-                child: FadeTransition(opacity: animation, child: child),
-              ),
-              child: Container(
-                key: ValueKey('$count:$hasMore'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  gradient: Tokens.brandGradient,
-                  borderRadius: BorderRadius.circular(Tokens.radiusPill),
-                ),
-                child: Text(
-                  '$count${hasMore ? '+' : ''}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 12, top: 2),
-          child: Text(
-            'Discover ${isManga ? 'series and chapters' : 'shows and movies'}',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ],
-    );
-
-    final controls = Wrap(
-      spacing: Tokens.space8,
-      runSpacing: Tokens.space8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      alignment: WrapAlignment.end,
-      children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 180),
-          child: DropdownButton<MediaSort>(
-            value: sort,
-            isExpanded: true,
-            borderRadius: BorderRadius.circular(Tokens.radiusSm),
-            underline: const SizedBox.shrink(),
-            items: [
-              for (final s in MediaSort.values)
-                DropdownMenuItem(
-                  value: s,
-                  child: Text(
-                    s.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-            onChanged: (s) {
-              if (s != null) {
-                ref.read(browseControllerProvider(type).notifier).setSort(s);
-              }
-            },
-          ),
-        ),
-        // Animated filter button: gradient + glow fade in when active.
-        AnimatedContainer(
-          duration: Tokens.durationMedium,
-          curve: Tokens.curveSmooth,
-          decoration: BoxDecoration(
-            gradient: hasFilters ? Tokens.brandGradient : null,
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
-            boxShadow: hasFilters
-                ? Tokens.glowShadow(theme.colorScheme.primary)
-                : null,
-          ),
-          child: hasFilters
-              ? FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: onFilterTap,
-                  icon: const Icon(Icons.tune, size: 18),
-                  label: const Text('Filters •'),
-                )
-              : OutlinedButton.icon(
-                  onPressed: onFilterTap,
-                  icon: const Icon(Icons.tune, size: 18),
-                  label: const Text('Filters'),
-                ),
-        ),
-      ],
-    );
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Tokens.space16,
         Tokens.space20,
         Tokens.space16,
-        Tokens.space8,
+        Tokens.space4,
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth >= 640) {
-            return Row(children: [titleBlock, const Spacer(), controls]);
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              titleBlock,
-              const SizedBox(height: Tokens.space8),
-              Align(alignment: Alignment.centerRight, child: controls),
+              Container(
+                width: 4,
+                height: 24,
+                decoration: BoxDecoration(
+                  gradient: Tokens.brandGradient,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: Tokens.space8),
+              Text(
+                isManga ? 'Manga' : 'Anime',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(width: Tokens.space8),
+              AnimatedSwitcher(
+                duration: Tokens.durationFast,
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: Container(
+                  key: ValueKey('$count:$hasMore'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: Tokens.brandGradient,
+                    borderRadius: BorderRadius.circular(Tokens.radiusPill),
+                  ),
+                  child: Text(
+                    '$count${hasMore ? '+' : ''}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
             ],
-          );
-        },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Text(
+              'Discover ${isManga ? 'series and chapters' : 'shows and movies'}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Inline filter bar: Genres / Formats / Status / Year / Sort dropdowns plus
+/// a reset button and an overflow button for the full filter sheet
+/// (anime season lives there).
+class _FilterBar extends ConsumerWidget {
+  const _FilterBar({required this.type, required this.onMoreTap});
+
+  final MediaType type;
+  final VoidCallback onMoreTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final query = ref.watch(
+      browseControllerProvider(type).select((s) => s.query),
+    );
+    final controller = ref.read(browseControllerProvider(type).notifier);
+    final isManga = type == MediaType.manga;
+
+    final formats = isManga
+        ? const [MediaFormat.manga, MediaFormat.novel, MediaFormat.oneShot]
+        : const [
+            MediaFormat.tv,
+            MediaFormat.tvShort,
+            MediaFormat.movie,
+            MediaFormat.special,
+            MediaFormat.ova,
+            MediaFormat.ona,
+            MediaFormat.music,
+          ];
+    final statuses =
+        MediaStatus.values.where((s) => s != MediaStatus.unknown).toList();
+    final thisYear = DateTime.now().year;
+    final years = List.generate(thisYear + 2 - 1970, (i) => thisYear + 1 - i);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(
+        Tokens.space16,
+        Tokens.space8,
+        Tokens.space16,
+        Tokens.space4,
+      ),
+      child: Row(
+        spacing: Tokens.space8,
+        children: [
+          _FilterDropdown<String>(
+            width: 150,
+            hint: 'Genres',
+            value: query.genre,
+            items: [
+              for (final genre in kGenres)
+                DropdownMenuItem(value: genre, child: Text(genre)),
+            ],
+            onChanged: controller.setGenre,
+          ),
+          _FilterDropdown<MediaFormat>(
+            width: 150,
+            hint: 'Formats',
+            value: query.format == MediaFormat.unknown ? null : query.format,
+            items: [
+              for (final format in formats)
+                DropdownMenuItem(
+                  value: format,
+                  child: Text(format.label),
+                ),
+            ],
+            onChanged: controller.setFormat,
+          ),
+          _FilterDropdown<MediaStatus>(
+            width: 150,
+            hint: 'Status',
+            value: query.status,
+            items: [
+              for (final status in statuses)
+                DropdownMenuItem(
+                  value: status,
+                  child: Text(status.label),
+                ),
+            ],
+            onChanged: controller.setStatus,
+          ),
+          _FilterDropdown<int>(
+            width: 130,
+            hint: 'Year',
+            icon: Icons.calendar_month_outlined,
+            value: query.seasonYear,
+            items: [
+              for (final year in years)
+                DropdownMenuItem(value: year, child: Text('$year')),
+            ],
+            onChanged: controller.setYear,
+          ),
+          _FilterDropdown<MediaSort>(
+            width: 170,
+            hint: 'Most Popular',
+            value: query.sort,
+            items: [
+              for (final sort in MediaSort.values)
+                DropdownMenuItem(
+                  value: sort,
+                  child: Text(_sortLabel(sort)),
+                ),
+            ],
+            onChanged: (sort) {
+              if (sort != null) controller.setSort(sort);
+            },
+          ),
+          _BarButton(
+            tooltip: query.hasFilters ? 'Reset filters' : 'No filters to reset',
+            icon: Icons.restart_alt_outlined,
+            onPressed: query.hasFilters ? controller.clearFilters : null,
+          ),
+          _BarButton(
+            tooltip: 'More filters',
+            icon: Icons.tune_outlined,
+            onPressed: onMoreTap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _sortLabel(MediaSort sort) => switch (sort) {
+      MediaSort.popularity => 'Most Popular',
+      MediaSort.trending => 'Trending',
+      MediaSort.score => 'Top Rated',
+      MediaSort.favourites => 'Most Favorited',
+      MediaSort.startDate => 'Newest',
+      MediaSort.updated => 'Recently Updated',
+      MediaSort.titleRomaji => 'A – Z',
+    };
+
+/// Outlined dropdown box used by the filter bar.
+class _FilterDropdown<T> extends StatelessWidget {
+  const _FilterDropdown({
+    required this.width,
+    required this.hint,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.icon,
+  });
+
+  final double width;
+  final String hint;
+  final T? value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final hasValue =
+        value != null && (value is! String || (value as String).isNotEmpty);
+    return Container(
+      width: width,
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: Tokens.space12),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: hasValue ? scheme.primary : scheme.outlineVariant,
+          width: hasValue ? 1.5 : 1,
+        ),
+        borderRadius: BorderRadius.circular(Tokens.radiusMd),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T?>(
+          value: value,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          borderRadius: BorderRadius.circular(Tokens.radiusSm),
+          hint: Row(
+            spacing: Tokens.space4,
+            children: [
+              if (icon != null)
+                Icon(icon, size: 16, color: scheme.onSurfaceVariant),
+              Flexible(
+                child: Text(
+                  hint,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          items: [
+            DropdownMenuItem<T?>(
+              child: Text(
+                hasValue ? 'All' : hint,
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+            ),
+            ...items,
+          ],
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+/// Small outlined square button used at the end of the filter bar.
+class _BarButton extends StatelessWidget {
+  const _BarButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Tooltip(
+        message: tooltip,
+        child: OutlinedButton(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(44, 44),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Tokens.radiusMd),
+            ),
+            side: BorderSide(color: scheme.outlineVariant),
+          ),
+          child: Icon(icon, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Page N" label with prev/next arrows.
+class _PageNav extends ConsumerWidget {
+  const _PageNav({required this.type});
+
+  final MediaType type;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final page = ref.watch(
+      browseControllerProvider(type).select((s) => s.query.page),
+    );
+    final hasNextPage = ref.watch(
+      browseControllerProvider(type).select((s) => s.hasNextPage),
+    );
+    final isLoading = ref.watch(
+      browseControllerProvider(type).select(
+        (s) => s.status == LoadStatus.loading || s.isLoadingMore,
+      ),
+    );
+    final controller = ref.read(browseControllerProvider(type).notifier);
+
+    Future<void> goTo(int target) async {
+      await controller.goToPage(target);
+      if (context.mounted) {
+        context
+            .findAncestorStateOfType<_BrowseScreenState>()
+            ?.scrollToTop();
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Tokens.space16,
+        Tokens.space8,
+        Tokens.space16,
+        0,
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Page $page',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          IconButton.outlined(
+            tooltip: 'Previous page',
+            visualDensity: VisualDensity.compact,
+            onPressed: page <= 1 || isLoading ? null : () => goTo(page - 1),
+            icon: const Icon(Icons.chevron_left, size: 20),
+          ),
+          const SizedBox(width: Tokens.space8),
+          IconButton.outlined(
+            tooltip: 'Next page',
+            visualDensity: VisualDensity.compact,
+            onPressed: !hasNextPage || isLoading ? null : () => goTo(page + 1),
+            icon: const Icon(Icons.chevron_right, size: 20),
+          ),
+        ],
       ),
     );
   }
@@ -422,6 +655,11 @@ class _ActiveFilters extends ConsumerWidget {
                 ? '${query.season!.label} ${query.seasonYear}'
                 : query.season!.label,
           ),
+          onDeleted: () => clear(withSeason: false),
+        ),
+      if (query.season == null && query.seasonYear != null)
+        InputChip(
+          label: Text('${query.seasonYear}'),
           onDeleted: () => clear(withSeason: false),
         ),
     ];

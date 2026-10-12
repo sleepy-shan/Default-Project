@@ -4,6 +4,7 @@ import '../anilist/anilist_mapper.dart';
 import '../anilist/anilist_queries.dart';
 import '../models/airing_schedule.dart';
 import '../models/media.dart';
+import '../models/people.dart';
 
 /// Search/browse criteria passed to [MediaRepository.browse].
 class BrowseQuery {
@@ -119,7 +120,10 @@ class MediaRepository {
       'type': type.anilistValue,
     });
     final result = _page(data, page);
-    _put(key, result);
+    // Trending is never legitimately empty — an empty page means a
+    // degraded API response, so don't cache it (otherwise the home
+    // carousel/rails get stuck showing nothing until the TTL expires).
+    if (result.items.isNotEmpty) _put(key, result);
     return result;
   }
 
@@ -152,7 +156,10 @@ class MediaRepository {
     // those fields for a single title by id.
     final data = await _client.query(browseQuery(detail: false), variables);
     final result = _page(data, query.page);
-    _put(key, result);
+    // An empty page that still claims more results is a degraded API
+    // response, not a real "no results" — don't cache it or filters and
+    // rails get stuck empty until the TTL expires.
+    if (result.items.isNotEmpty || !result.hasNextPage) _put(key, result);
     return result;
   }
 
@@ -199,6 +206,92 @@ class MediaRepository {
       'browse:${q.type.name}:${q.sort.name}:${q.search.trim().toLowerCase()}'
       ':${q.genre ?? ''}:${q.status?.name ?? ''}:${q.format?.name ?? ''}'
       ':${q.season?.name ?? ''}:${q.seasonYear ?? 0}:${q.page}:${q.perPage}';
+
+  /// Character ranking/search for the Search > Characters tab.
+  ///
+  /// An empty [search] returns the favourites ranking (Page 1).
+  Future<CharacterPage> searchCharacters({
+    String search = '',
+    int page = 1,
+    int perPage = 16,
+  }) async {
+    final trimmed = search.trim();
+    final key = 'characters:${trimmed.toLowerCase()}:$page:$perPage';
+    final cached = _get<CharacterPage>(key);
+    if (cached != null) return cached;
+    final data = await _client.query(kCharacterSearchQuery, {
+      'page': page,
+      'perPage': perPage,
+      if (trimmed.isNotEmpty) 'search': trimmed,
+    });
+    final pageJson = _pageMap(data['Page']);
+    final info = AniListMapper.pageInfo(pageJson, page);
+    final result = CharacterPage(
+      items: AniListMapper.characters(pageJson['characters']),
+      page: info.page,
+      hasNextPage: info.hasNextPage,
+    );
+    if (result.items.isNotEmpty || !result.hasNextPage) _put(key, result);
+    return result;
+  }
+
+  /// Staff ranking/search for the Search > Staff tab.
+  Future<StaffPage> searchStaff({
+    String search = '',
+    int page = 1,
+    int perPage = 16,
+  }) async {
+    final trimmed = search.trim();
+    final key = 'staff:${trimmed.toLowerCase()}:$page:$perPage';
+    final cached = _get<StaffPage>(key);
+    if (cached != null) return cached;
+    final data = await _client.query(kStaffSearchQuery, {
+      'page': page,
+      'perPage': perPage,
+      if (trimmed.isNotEmpty) 'search': trimmed,
+    });
+    final pageJson = _pageMap(data['Page']);
+    final info = AniListMapper.pageInfo(pageJson, page);
+    final result = StaffPage(
+      items: AniListMapper.staff(pageJson['staff']),
+      page: info.page,
+      hasNextPage: info.hasNextPage,
+    );
+    if (result.items.isNotEmpty || !result.hasNextPage) _put(key, result);
+    return result;
+  }
+
+  /// Studio ranking/search for the Search > Studios tab.
+  Future<StudioPage> searchStudios({
+    String search = '',
+    int page = 1,
+    int perPage = 16,
+  }) async {
+    final trimmed = search.trim();
+    final key = 'studios:${trimmed.toLowerCase()}:$page:$perPage';
+    final cached = _get<StudioPage>(key);
+    if (cached != null) return cached;
+    final data = await _client.query(kStudioSearchQuery, {
+      'page': page,
+      'perPage': perPage,
+      if (trimmed.isNotEmpty) 'search': trimmed,
+    });
+    final pageJson = _pageMap(data['Page']);
+    final info = AniListMapper.pageInfo(pageJson, page);
+    final result = StudioPage(
+      items: AniListMapper.studios(pageJson['studios']),
+      page: info.page,
+      hasNextPage: info.hasNextPage,
+    );
+    if (result.items.isNotEmpty || !result.hasNextPage) _put(key, result);
+    return result;
+  }
+
+  Map<String, dynamic> _pageMap(Object? raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    return const {};
+  }
 
   MediaPage _page(Map<String, dynamic> data, int fallbackPage) {
     final raw = data['Page'];

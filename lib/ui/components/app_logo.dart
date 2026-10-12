@@ -1,14 +1,13 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../core/theme/design_tokens.dart';
 
-/// Ikigai brand mark.
+/// Ikigai brand mark — "still water sunrise".
 ///
-/// Concept: a minimalist ensō — a single ink brush ring with a small
-/// vermilion core — on a deep sumi tile. Rendered as vector so it stays
-/// crisp at any size and in both themes. No image asset required.
+/// Concept: a calm lagoon tile holding a warm paper sun rising over two
+/// still-water waves. The sun is the ikigai ("reason for being"), the
+/// waves are the chill. Rendered as vector so it stays crisp at any size
+/// and in both themes. No image asset required.
 class AppLogo extends StatelessWidget {
   const AppLogo({
     this.size = 36,
@@ -40,7 +39,7 @@ class AppLogo extends StatelessWidget {
     );
     if (onTap == null) return content;
     return InkWell(
-      borderRadius: BorderRadius.circular(Tokens.radiusPill),
+      borderRadius: BorderRadius.circular(Tokens.radiusMd),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(4),
@@ -72,15 +71,15 @@ class _Wordmark extends StatelessWidget {
             color: theme.colorScheme.onSurface,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Container(
           padding: EdgeInsets.symmetric(
             horizontal: 7 * scale,
-            vertical: 2 * scale,
+            vertical: 2.5 * scale,
           ),
           decoration: BoxDecoration(
             color: Tokens.brand,
-            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            borderRadius: BorderRadius.circular(6 * scale),
           ),
           child: Text(
             'ANIME • MANGA',
@@ -105,63 +104,77 @@ class _LogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2B2D42), Color(0xFF1E1E24)],
+        gradient: LinearGradient(
+          colors: isDark
+              ? const [Color(0xFF1A3A37), Color(0xFF0C1A19)]
+              : const [Color(0xFF12705F), Color(0xFF0B4F46)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(size * 0.28),
+        borderRadius: BorderRadius.circular(size * 0.30),
         boxShadow: [
           BoxShadow(
-            color: Tokens.brand.withValues(alpha: 0.32),
-            blurRadius: size * 0.35,
-            offset: Offset(0, size * 0.12),
+            color: Tokens.brand.withValues(alpha: 0.28),
+            blurRadius: size * 0.30,
+            offset: Offset(0, size * 0.10),
           ),
         ],
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.14),
+          color: Colors.white.withValues(alpha: 0.16),
           width: 1,
         ),
       ),
-      child: CustomPaint(painter: _EnsoPainter()),
+      child: CustomPaint(painter: _StillWaterPainter()),
     );
   }
 }
 
-/// Paints a minimalist ensō ring with a vermilion core.
-class _EnsoPainter extends CustomPainter {
+/// Paints a warm sun rising over two calm wave strokes.
+class _StillWaterPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final center = Offset(w * 0.5, h * 0.52);
-    final radius = w * 0.30;
 
-    // Ensō ring: warm paper stroke with a gap (brush lift) at lower-right.
-    final ringPaint = Paint()
-      ..color = const Color(0xFFF5F1E8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.10
-      ..strokeCap = StrokeCap.round;
-    const startAngle = -0.35 * math.pi;
-    const sweepAngle = 1.72 * math.pi;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle,
-      sweepAngle,
-      false,
-      ringPaint,
+    // Sun: warm paper circle, upper third.
+    canvas.drawCircle(
+      Offset(w * 0.5, h * 0.38),
+      w * 0.155,
+      Paint()..color = const Color(0xFFF4EBD9),
+    );
+    // Soft sun glow.
+    canvas.drawCircle(
+      Offset(w * 0.5, h * 0.38),
+      w * 0.21,
+      Paint()..color = const Color(0xFFF4EBD9).withValues(alpha: 0.22),
     );
 
-    // Vermilion core: the "reason for being" dot.
-    canvas.drawCircle(
-      center,
-      w * 0.085,
-      Paint()..color = const Color(0xFFE0684A),
+    // Waves: two rounded still-water strokes in mist teal.
+    final wavePaint = Paint()
+      ..color = const Color(0xFF8FD4C5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.085
+      ..strokeCap = StrokeCap.round;
+    final wavePaintDim = Paint()
+      ..color = const Color(0xFF8FD4C5).withValues(alpha: 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.075
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawLine(
+      Offset(w * 0.24, h * 0.66),
+      Offset(w * 0.76, h * 0.66),
+      wavePaint,
+    );
+    canvas.drawLine(
+      Offset(w * 0.32, h * 0.79),
+      Offset(w * 0.68, h * 0.79),
+      wavePaintDim,
     );
   }
 
