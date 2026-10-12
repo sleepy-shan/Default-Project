@@ -608,7 +608,7 @@ class _LoadingPosterGridState extends State<LoadingPosterGrid>
       builder: (context, constraints) {
         final columns = posterColumns(constraints.maxWidth);
         final tileWidth =
-            (constraints.maxWidth - (columns - 1) * Tokens.space12) / columns;
+            (constraints.maxWidth - (columns - 1) * Tokens.space16) / columns;
         final tileHeight = tileWidth / Tokens.posterAspect + 56;
         return GridView.builder(
           padding: const EdgeInsets.all(Tokens.space16),
@@ -620,8 +620,8 @@ class _LoadingPosterGridState extends State<LoadingPosterGrid>
           addRepaintBoundaries: true,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: Tokens.space12,
-            crossAxisSpacing: Tokens.space12,
+            mainAxisSpacing: Tokens.space20,
+            crossAxisSpacing: Tokens.space16,
             childAspectRatio: tileWidth / tileHeight,
           ),
           itemCount: columns * 2,

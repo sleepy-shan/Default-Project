@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_scroll.dart';
 import '../../core/theme/design_tokens.dart';
+import '../components/app_footer.dart';
 import '../components/app_logo.dart';
 
 /// About / credits page.
@@ -126,6 +127,7 @@ class AboutScreen extends ConsumerWidget {
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
+        const AppFooter(),
       ],
     );
   }

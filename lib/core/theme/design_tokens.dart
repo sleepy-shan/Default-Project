@@ -62,13 +62,18 @@ abstract final class Tokens {
   static const Curve curveSnap = Curves.easeOutBack;
 
   // ---------------------------------------------------------------------
-  // Brand palette — Ikigai "Ink + Vermilion" (wabi-sabi minimal)
+  // Brand palette — Ikigai "Komorebi Lagoon" (chill minimal)
+  //
+  // Calm lagoon teal + warm paper sun + still-water mist. Low-saturation
+  // so long browsing sessions feel restful, not loud.
   // ---------------------------------------------------------------------
-  static const Color brand = Color(0xFFC73E1D); // shu-iro vermilion
-  static const Color brandDark = Color(0xFFE0684A); // vermilion for dark bg
-  static const Color accent = Color(0xFF2B2D42); // sumi ink
-  static const Color paper = Color(0xFFF5F1E8); // warm washi paper
-  static const Color ink = Color(0xFF1E1E24); // deep sumi
+  static const Color brand = Color(0xFF0E7C6B); // lagoon teal
+  static const Color brandDark = Color(0xFF5EEAD4); // mist teal for dark bg
+  static const Color accent = Color(0xFF3F6F66); // eucalyptus ink
+  static const Color paper = Color(0xFFF4EFE3); // warm paper sun
+  static const Color ink = Color(0xFF0F1E1D); // deep pine ink
+  static const Color sun = Color(0xFFE9C46A); // calm sunrise gold
+  static const Color mist = Color(0xFFDCE9E4); // still-water mist
   static const Color like = Color(0xFFE54666); // score / heart
   static const Color success = Color(0xFF21A179);
   static const Color warning = Color(0xFFF4A62A);
@@ -85,20 +90,20 @@ abstract final class Tokens {
   // Signature gradients / surfaces (the "unique" look)
   // ---------------------------------------------------------------------
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [Color(0xFFE0684A), Color(0xFFC73E1D), Color(0xFF8F2A12)],
+    colors: [Color(0xFF5EEAD4), Color(0xFF0E7C6B), Color(0xFF0B4F46)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF241311), Color(0xFF0B0D14)],
+    colors: [Color(0xFF123332), Color(0xFF0B1212)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
   static const RadialGradient auroraEmber = RadialGradient(
-    colors: [Color(0x55C73E1D), Color(0x00000000)],
+    colors: [Color(0x330E7C6B), Color(0x00000000)],
   );
   static const RadialGradient auroraInk = RadialGradient(
-    colors: [Color(0x442B2D42), Color(0x00000000)],
+    colors: [Color(0x283F6F66), Color(0x00000000)],
   );
 
   static List<BoxShadow> cardShadow(Brightness brightness) {
@@ -107,9 +112,9 @@ abstract final class Tokens {
       BoxShadow(
         color: isDark
             ? Colors.black.withValues(alpha: 0.45)
-            : const Color(0xFF241311).withValues(alpha: 0.10),
-        blurRadius: 24,
-        offset: const Offset(0, 12),
+            : const Color(0xFF0F1E1D).withValues(alpha: 0.08),
+        blurRadius: 20,
+        offset: const Offset(0, 8),
       ),
     ];
   }
@@ -130,12 +135,12 @@ abstract final class Tokens {
 /// must use `scheme.primary / onSurface / onSurfaceVariant` instead of
 /// hardcoding the old vermilion.
 enum AppAccent {
-  vermilion('Vermilion', Color(0xFFC73E1D)),
-  ink('Ink', Color(0xFF2B2D42)),
-  stone('Stone', Color(0xFF8A8378)),
-  sage('Sage', Color(0xFF7D8C6F)),
-  indigo('Indigo', Color(0xFF3E4E8A)),
-  clay('Clay', Color(0xFFB65C38));
+  lagoon('Lagoon', Color(0xFF0E7C6B)),
+  moss('Moss', Color(0xFF5B7F5A)),
+  dusk('Dusk', Color(0xFF3E4E8A)),
+  sand('Sand', Color(0xFFA98B4F)),
+  slate('Slate', Color(0xFF475569)),
+  sakura('Sakura', Color(0xFFB57E8A));
 
   const AppAccent(this.label, this.seed);
 
@@ -143,19 +148,25 @@ enum AppAccent {
   final Color seed;
 
   /// Resolves a stored accent name, migrating pre-Ikigai values.
-  static AppAccent fromName(String? name, {AppAccent fallback = AppAccent.vermilion}) {
+  static AppAccent fromName(String? name, {AppAccent fallback = AppAccent.lagoon}) {
     if (name == null || name.isEmpty) return fallback;
     for (final accent in AppAccent.values) {
       if (accent.name == name) return accent;
     }
-    // Pre-rebrand (Sandwich) accents → closest Ikigai equivalent.
+    // Pre-rebrand accents → closest chill equivalent.
     return switch (name) {
-      'violet' => AppAccent.vermilion,
-      'teal' => AppAccent.sage,
-      'rose' => AppAccent.clay,
-      'amber' => AppAccent.vermilion,
-      'sky' => AppAccent.indigo,
-      'mint' => AppAccent.sage,
+      'vermilion' => AppAccent.lagoon,
+      'ink' => AppAccent.slate,
+      'stone' => AppAccent.sand,
+      'sage' => AppAccent.moss,
+      'indigo' => AppAccent.dusk,
+      'clay' => AppAccent.sand,
+      'violet' => AppAccent.dusk,
+      'teal' => AppAccent.lagoon,
+      'rose' => AppAccent.sakura,
+      'amber' => AppAccent.sand,
+      'sky' => AppAccent.dusk,
+      'mint' => AppAccent.moss,
       _ => fallback,
     };
   }

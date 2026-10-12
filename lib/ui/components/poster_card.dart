@@ -296,8 +296,10 @@ class MediaRailCard extends StatelessWidget {
     return SizedBox(
       width: width,
       child: HoverLift(
-        lift: 5,
-        scale: 1.03,
+        // No lift/scale on rails: scaling beyond the 148px extent makes
+        // neighbours overlap during fast horizontal scrolls.
+        lift: 0,
+        scale: 1.0,
         child: InkWell(
           borderRadius: BorderRadius.circular(Tokens.radiusLg),
           onTap: () => context.go(Routes.mediaDetail(media.type, media.id)),

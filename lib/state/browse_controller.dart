@@ -70,10 +70,11 @@ class BrowseController extends Notifier<BrowseState> {
     final id = ++_requestId;
     state = state.copyWith(status: LoadStatus.loading, errorMessage: null);
     try {
-      final page = await _repo.browse(state.query.copyWith(page: 1));
+      final page = await _repo.browse(state.query);
       if (id != _requestId) return; // superseded by a newer request.
       state = state.copyWith(
         status: LoadStatus.success,
+        query: state.query.copyWith(page: page.page),
         items: page.items,
         hasNextPage: page.hasNextPage,
         errorMessage: null,
@@ -114,7 +115,9 @@ class BrowseController extends Notifier<BrowseState> {
   }
 
   Future<void> setSearch(String search) async {
-    state = state.copyWith(query: state.query.copyWith(search: search));
+    state = state.copyWith(
+      query: state.query.copyWith(page: 1, search: search),
+    );
     await load();
   }
 
@@ -136,18 +139,70 @@ class BrowseController extends Notifier<BrowseState> {
         seasonYear: seasonYear,
         sort: sort ?? state.query.sort,
         clearFilters: true,
+        page: 1,
       ),
     );
     await load();
   }
 
   Future<void> setStatus(MediaStatus? status) async {
-    state = state.copyWith(query: state.query.copyWith(status: status));
+    final q = state.query;
+    state = state.copyWith(
+      query: q.copyWith(
+        page: 1,
+        genre: q.genre,
+        status: status,
+        format: q.format,
+        season: q.season,
+        seasonYear: q.seasonYear,
+        clearFilters: true,
+      ),
+    );
+    await load();
+  }
+
+  Future<void> setGenre(String? genre) async {
+    final q = state.query;
+    state = state.copyWith(
+      query: q.copyWith(
+        page: 1,
+        genre: genre,
+        status: q.status,
+        format: q.format,
+        season: q.season,
+        seasonYear: q.seasonYear,
+        clearFilters: true,
+      ),
+    );
+    await load();
+  }
+
+  /// Jumps to [page] (1-based), replacing items instead of accumulating.
+  Future<void> goToPage(int page) async {
+    final target = page < 1 ? 1 : page;
+    if (target == state.query.page &&
+        state.status != LoadStatus.initial) {
+      return;
+    }
+    state = state.copyWith(
+      query: state.query.copyWith(page: target),
+    );
     await load();
   }
 
   Future<void> setFormat(MediaFormat? format) async {
-    state = state.copyWith(query: state.query.copyWith(format: format));
+    final q = state.query;
+    state = state.copyWith(
+      query: q.copyWith(
+        page: 1,
+        genre: q.genre,
+        status: q.status,
+        format: format,
+        season: q.season,
+        seasonYear: q.seasonYear,
+        clearFilters: true,
+      ),
+    );
     await load();
   }
 
@@ -157,12 +212,25 @@ class BrowseController extends Notifier<BrowseState> {
   }
 
   Future<void> setYear(int? year) async {
-    state = state.copyWith(query: state.query.copyWith(seasonYear: year));
+    final q = state.query;
+    state = state.copyWith(
+      query: q.copyWith(
+        page: 1,
+        genre: q.genre,
+        status: q.status,
+        format: q.format,
+        season: q.season,
+        seasonYear: year,
+        clearFilters: true,
+      ),
+    );
     await load();
   }
 
   Future<void> setSort(MediaSort sort) async {
-    state = state.copyWith(query: state.query.copyWith(sort: sort));
+    state = state.copyWith(
+      query: state.query.copyWith(page: 1, sort: sort),
+    );
     await load();
   }
 

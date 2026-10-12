@@ -129,9 +129,56 @@ query (\$page: Int, \$perPage: Int, \$airingAt_greater: Int, \$airingAt_lesser: 
       media {
         id
         type
+        episodes
+        averageScore
         title { romaji english native }
         coverImage { large }
       }
+    }
+  }
+}''';
+
+/// Character search/ranking for the Search > Characters tab.
+///
+/// An omitted/empty `search` returns the favourites ranking (Page 1).
+const String kCharacterSearchQuery = '''
+query (\$page: Int, \$perPage: Int, \$search: String) {
+  Page(page: \$page, perPage: \$perPage) {
+    pageInfo { currentPage hasNextPage }
+    characters(search: \$search, sort: FAVOURITES_DESC) {
+      id
+      name { full native }
+      image { large }
+      favourites
+    }
+  }
+}''';
+
+/// Staff search/ranking for the Search > Staff tab.
+const String kStaffSearchQuery = '''
+query (\$page: Int, \$perPage: Int, \$search: String) {
+  Page(page: \$page, perPage: \$perPage) {
+    pageInfo { currentPage hasNextPage }
+    staff(search: \$search, sort: FAVOURITES_DESC) {
+      id
+      name { full native }
+      image { large }
+      favourites
+      primaryOccupations
+    }
+  }
+}''';
+
+/// Studio search/ranking for the Search > Studios tab.
+const String kStudioSearchQuery = '''
+query (\$page: Int, \$perPage: Int, \$search: String) {
+  Page(page: \$page, perPage: \$perPage) {
+    pageInfo { currentPage hasNextPage }
+    studios(search: \$search, sort: FAVOURITES_DESC) {
+      id
+      name
+      favourites
+      isAnimationStudio
     }
   }
 }''';
