@@ -149,6 +149,42 @@ Output in `build/web` is a static bundle — host it on any static host
 so configure the host to rewrite unknown paths to `index.html` for deep
 links (e.g. `/media/anime/154587`).
 
+### GitHub Pages (project site) — avoids the white screen
+
+The repo ships with `.github/workflows/deploy-web.yml`: push to `main` and
+it builds + deploys with the correct settings. Set `ANILIST_CLIENT_ID` under
+**Settings → Secrets → Actions** first (optional; the app runs as a guest
+without it).
+
+If you deploy manually instead, all three steps are required — missing any
+one of them is the usual white-screen cause:
+
+```bash
+# 1. Base href must match the repo name EXACTLY (case-sensitive),
+#    with both slashes. For user.github.io/Ikigai-Project/:
+flutter build web --release \
+  --base-href="/Ikigai-Project/" \
+  --dart-define=ANILIST_CLIENT_ID=YOUR_CLIENT_ID
+
+# 2. GitHub Pages runs Jekyll, which hides files starting with `_`
+#    and breaks the Flutter bundle without this:
+touch build/web/.nojekyll
+
+# 3. SPA fallback so deep links (/anime, /media/anime/21) boot the app
+#    instead of 404ing. Copy AFTER building so the base href matches:
+cp build/web/index.html build/web/404.html
+```
+
+Then publish the contents of `build/web`. Also note:
+
+- Open `https://<user>.github.io/Ikigai-Project/` with the **trailing
+  slash** and exact case; the wrong case 404s the JS bundle.
+- After redeploying, hard-refresh (`Ctrl+Shift+R`) — `index.html` caches
+  aggressively and an old copy will reference stale hashed assets.
+- To diagnose: open the white page, press `F12 → Console`. A
+  `404 flutter_bootstrap.js / main.dart.js` means the `--base-href` is
+  wrong; other red errors are now also shown on the boot screen itself.
+
 ## Known limitations
 
 - AniList list sync (two-way `SaveMediaListEntry` / `MediaListCollection`)

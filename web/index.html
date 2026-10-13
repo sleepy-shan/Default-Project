@@ -35,8 +35,110 @@
 
   <title>Ikigai — Discover & Track Anime & Manga</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* Boot loader: replaces the bare white screen while flutter_bootstrap.js
+       loads. If the app fails to start, this stays visible with an error
+       message instead of leaving the user on a blank page. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0B1212;
+    }
+    #boot {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: radial-gradient(600px 400px at 30% 20%, rgba(14,124,107,.25), transparent),
+                  radial-gradient(600px 400px at 70% 80%, rgba(14,124,107,.15), transparent),
+                  #0B1212;
+      color: #E8F0ED;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    #boot .mark {
+      width: 56px;
+      height: 56px;
+      border-radius: 17px;
+      background: linear-gradient(135deg, #12705F, #0B4F46);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 800;
+      color: #F4EBD9;
+      box-shadow: 0 8px 32px rgba(14,124,107,.4);
+    }
+    #boot .spinner {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.2);
+      border-top-color: #2DD4BF;
+      animation: boot-spin 0.9s linear infinite;
+    }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+    #boot .msg { font-size: 14px; opacity: .8; max-width: 520px; line-height: 1.5; }
+    #boot .err {
+      display: none;
+      font-size: 13px;
+      max-width: 560px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      padding: 12px 14px;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
 </head>
 <body>
+  <div id="boot">
+    <div class="mark">生</div>
+    <div class="spinner"></div>
+    <div class="msg" id="boot-msg">Loading Ikigai…</div>
+    <div class="err" id="boot-err"></div>
+  </div>
+  <script>
+    // Surface boot failures instead of a silent white screen.
+    (function () {
+      var errBox = document.getElementById('boot-err');
+      var msg = document.getElementById('boot-msg');
+      function show(text) {
+        if (!errBox) return;
+        errBox.style.display = 'block';
+        errBox.textContent += (errBox.textContent ? '\n\n' : '') + text;
+        if (msg) msg.textContent = 'Something went wrong while starting the app:';
+      }
+      window.addEventListener('error', function (e) {
+        if (e && e.message) show('Error: ' + e.message);
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        show('Unhandled error: ' + ((e && e.reason && (e.reason.message || e.reason)) || 'unknown'));
+      });
+      // If flutter_bootstrap.js itself 404s (wrong --base-href), the
+      // script onerror below fires with a hint.
+      window.__bootFailed = function () {
+        show('Could not load flutter_bootstrap.js. The app was likely built with the wrong --base-href.\n' +
+             'For GitHub Pages project sites rebuild with --base-href="/Ikigai-Project/" (match the repo name and keep both slashes).');
+      };
+      // If the Flutter engine never renders within 30s, hint at common causes.
+      setTimeout(function () {
+        var boot = document.getElementById('boot');
+        if (boot && document.body.contains(boot)) {
+          // Still showing the loader: engine may have stalled.
+          if (msg) msg.textContent += ' (still loading — check your connection, or open DevTools Console for details)';
+        }
+      }, 30000);
+    })();
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
@@ -45,6 +147,13 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter_bootstrap.js" async onerror="window.__bootFailed && window.__bootFailed()"></script>
+  <script>
+    // Remove the loader once Flutter renders its first frame.
+    window.addEventListener('flutter-first-frame', function () {
+      var boot = document.getElementById('boot');
+      if (boot) boot.remove();
+    });
+  </script>
 </body>
 </html>
