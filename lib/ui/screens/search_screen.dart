@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_motion.dart';
@@ -10,9 +11,11 @@ import '../../data/models/people.dart';
 import '../../state/load_state.dart';
 import '../../state/search_controller.dart';
 import '../components/media_grid.dart';
+import '../components/search_field.dart';
 import '../components/app_footer.dart';
 import '../components/sliver_headers.dart';
 import '../components/state_views.dart';
+import '../router/app_router.dart';
 
 final _favouritesFormat = NumberFormat('#,###');
 
@@ -211,8 +214,6 @@ class _TabSearchField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final tab = ref.watch(searchControllerProvider.select((s) => s.tab));
     final hasQuery = ref.watch(
       searchControllerProvider.select((s) => s.query.isNotEmpty),
@@ -243,58 +244,22 @@ class _TabSearchField extends ConsumerWidget {
         alignment: Alignment.centerRight,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              border: Border.all(color: scheme.outlineVariant),
-              borderRadius: BorderRadius.circular(Tokens.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: textController,
-                    focusNode: focusNode,
-                    textInputAction: TextInputAction.search,
-                    onChanged: controller.onQueryChanged,
-                    onSubmitted: controller.submit,
-                    style: theme.textTheme.bodyMedium,
-                    decoration: InputDecoration(
-                      hintText: hint,
-                      hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: Tokens.space12,
-                      ),
-                    ),
-                  ),
-                ),
-                if (hasQuery)
-                  IconButton(
-                    tooltip: 'Clear',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    onPressed: () {
-                      textController.clear();
-                      controller.clear();
-                      focusNode.requestFocus();
-                    },
-                  ),
-                Container(
-                  width: 1,
-                  height: 24,
-                  color: scheme.outlineVariant,
-                ),
-                IconButton(
-                  tooltip: 'Search',
-                  icon: const Icon(Icons.search_rounded, size: 20),
-                  onPressed: () => controller.submit(textController.text),
-                ),
-              ],
-            ),
+          // Shared field: the hairline/focus border is drawn once on the
+          // outer container, so it always wraps the text, clear button and
+          // search action as a single whole outline.
+          child: LensSearchField(
+            controller: textController,
+            focusNode: focusNode,
+            hintLong: hint,
+            hintShort: hint,
+            showKbdChip: false,
+            showClear: hasQuery,
+            onChanged: controller.onQueryChanged,
+            onSubmitted: controller.submit,
+            onClear: () {
+              textController.clear();
+              controller.clear();
+            },
           ),
         ),
       ),
@@ -759,7 +724,9 @@ class _CharacterCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Tokens.radiusMd),
       ),
-      child: Padding(
+      child: InkWell(
+        onTap: () => context.push(Routes.characterWorks(character.id)),
+        child: Padding(
         padding: const EdgeInsets.all(Tokens.space8),
         child: Row(
           spacing: Tokens.space12,
@@ -795,6 +762,7 @@ class _CharacterCard extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -814,7 +782,9 @@ class _StaffCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Tokens.radiusMd),
       ),
-      child: Padding(
+      child: InkWell(
+        onTap: () => context.push(Routes.staffWorks(staff.id)),
+        child: Padding(
         padding: const EdgeInsets.all(Tokens.space8),
         child: Row(
           spacing: Tokens.space12,
@@ -866,6 +836,7 @@ class _StaffCard extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -885,7 +856,9 @@ class _StudioCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Tokens.radiusMd),
       ),
-      child: Padding(
+      child: InkWell(
+        onTap: () => context.push(Routes.studioWorks(studio.id)),
+        child: Padding(
         padding: const EdgeInsets.all(Tokens.space8),
         child: Row(
           spacing: Tokens.space12,
@@ -933,6 +906,7 @@ class _StudioCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

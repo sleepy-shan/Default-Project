@@ -4,15 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/media.dart';
 import '../layout/app_shell.dart';
-import '../screens/about_screen.dart';
 import '../screens/browse_screen.dart';
 import '../screens/calendar_screen.dart';
-import '../screens/connections_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/my_lists_screen.dart';
+import '../screens/notifications_screen.dart';
+import '../screens/person_works_screen.dart';
+import '../screens/profile_screen.dart';
 import '../screens/media_detail_screen.dart';
 import '../screens/search_screen.dart';
-import '../screens/settings_screen.dart';
 
 /// Route paths, kept in one place so links stay consistent.
 abstract final class Routes {
@@ -22,12 +22,21 @@ abstract final class Routes {
   static const calendar = '/calendar';
   static const lists = '/lists';
   static const search = '/search';
-  static const connections = '/connections';
+  static const profile = '/profile';
+  static const notifications = '/notifications';
   static const settings = '/settings';
-  static const about = '/about';
+  static const staff = '/staff';
+  static const character = '/character';
+  static const studio = '/studio';
 
   static String mediaDetail(MediaType type, int id) =>
       '/media/${type.anilistValue.toLowerCase()}/$id';
+
+  static String staffWorks(int id) => '$staff/$id';
+
+  static String characterWorks(int id) => '$character/$id';
+
+  static String studioWorks(int id) => '$studio/$id';
 
   static String searchWith(String query) =>
       '$search?q=${Uri.encodeComponent(query)}';
@@ -79,16 +88,50 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: Routes.connections,
-            builder: (context, state) => const ConnectionsScreen(),
+            path: Routes.profile,
+            builder: (context, state) => const ProfileScreen(),
           ),
+          GoRoute(
+            path: Routes.notifications,
+            builder: (context, state) => const NotificationsScreen(),
+          ),
+          // Settings is a floating dialog now; keep old links working.
           GoRoute(
             path: Routes.settings,
-            builder: (context, state) => const SettingsScreen(),
+            redirect: (context, state) => Routes.home,
           ),
           GoRoute(
-            path: Routes.about,
-            builder: (context, state) => const AboutScreen(),
+            path: '/staff/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return PersonWorksScreen(
+                key: ValueKey('staff-$id'),
+                kind: PersonKind.staff,
+                id: id,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/character/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return PersonWorksScreen(
+                key: ValueKey('character-$id'),
+                kind: PersonKind.character,
+                id: id,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/studio/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return PersonWorksScreen(
+                key: ValueKey('studio-$id'),
+                kind: PersonKind.studio,
+                id: id,
+              );
+            },
           ),
           mediaDetailRoute(),
         ],

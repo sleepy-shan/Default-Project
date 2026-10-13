@@ -2,6 +2,7 @@ import '../../core/utils/app_exception.dart';
 import '../anilist/anilist_client.dart';
 import '../anilist/anilist_mapper.dart';
 import '../anilist/anilist_queries.dart';
+import '../models/account.dart';
 import '../models/airing_schedule.dart';
 import '../models/media.dart';
 import '../models/people.dart';
@@ -284,6 +285,101 @@ class MediaRepository {
       hasNextPage: info.hasNextPage,
     );
     if (result.items.isNotEmpty || !result.hasNextPage) _put(key, result);
+    return result;
+  }
+
+  /// Studio profile plus one page of the titles it produced.
+  Future<PersonWorks> studioWorks(
+    int id, {
+    int page = 1,
+    int perPage = 18,
+  }) async {
+    final key = 'studioWorks:$id:$page:$perPage';
+    final cached = _get<PersonWorks>(key);
+    if (cached != null) return cached;
+    final data = await _client.query(kStudioWorksQuery, {
+      'id': id,
+      'page': page,
+      'perPage': perPage,
+    });
+    final result = AniListMapper.studioWorks(data['Studio'], page);
+    if (result == null) {
+      throw AppException(ErrorKind.notFound, 'Studio $id is unavailable');
+    }
+    _put(key, result);
+    return result;
+  }
+
+  /// The signed-in user's recent title notifications (needs an AniList
+  /// token, so results are never cached).
+  Future<List<UserNotification>> notifications({
+    required String token,
+    int perPage = 30,
+  }) async {
+    final data = await _client.query(kNotificationsQuery, {
+      'perPage': perPage,
+    }, token: token);
+    return AniListMapper.notifications(_pageMap(data['Page'])['notifications']);
+  }
+
+  /// Profile header and anime statistics for the signed-in user.
+  Future<ViewerProfile> viewerProfile({required String token}) async {
+    final data = await _client.query(
+      kViewerProfileQuery,
+      const <String, dynamic>{},
+      token: token,
+    );
+    final result = AniListMapper.viewerProfile(data['Viewer']);
+    if (result == null) {
+      throw const AppException(
+        ErrorKind.server,
+        'AniList did not return a profile for this account.',
+      );
+    }
+    return result;
+  }
+
+  /// Staff profile plus one page of the titles they worked on.
+  Future<PersonWorks> staffWorks(
+    int id, {
+    int page = 1,
+    int perPage = 18,
+  }) async {
+    final key = 'staffWorks:$id:$page:$perPage';
+    final cached = _get<PersonWorks>(key);
+    if (cached != null) return cached;
+    final data = await _client.query(kStaffWorksQuery, {
+      'id': id,
+      'page': page,
+      'perPage': perPage,
+    });
+    final result = AniListMapper.staffWorks(data['Staff'], page);
+    if (result == null) {
+      throw AppException(ErrorKind.notFound, 'Staff $id is unavailable');
+    }
+    _put(key, result);
+    return result;
+  }
+
+  /// Character profile plus one page of the series they appear in.
+  Future<PersonWorks> characterWorks(
+    int id, {
+    int page = 1,
+    int perPage = 18,
+  }) async {
+    final key = 'characterWorks:$id:$page:$perPage';
+    final cached = _get<PersonWorks>(key);
+    if (cached != null) return cached;
+    final data = await _client.query(kCharacterWorksQuery, {
+      'id': id,
+      'page': page,
+      'perPage': perPage,
+    });
+    final result = AniListMapper.characterWorks(data['Character'], page);
+    if (result == null) {
+      throw AppException(ErrorKind.notFound, 'Character $id is unavailable');
+    }
+    _put(key, result);
     return result;
   }
 

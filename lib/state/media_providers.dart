@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/anilist/anilist_client.dart';
+import '../data/models/account.dart';
 import '../data/models/airing_schedule.dart';
 import '../data/models/media.dart';
+import '../data/models/people.dart';
 import '../data/repositories/media_repository.dart';
+import 'providers.dart';
 
 /// Shared AniList HTTP client and repository.
 ///
@@ -121,4 +124,45 @@ final mediaDetailProvider = FutureProvider.family.autoDispose<Media, int>((
 ) async {
   final repo = ref.watch(mediaRepositoryProvider);
   return repo.mediaDetail(id);
+});
+
+/// Staff profile + one page of their titles, keyed by `(staffId, page)`.
+final staffWorksProvider =
+    FutureProvider.family.autoDispose<PersonWorks, (int, int)>((ref, key) {
+  final (id, page) = key;
+  return ref.watch(mediaRepositoryProvider).staffWorks(id, page: page);
+});
+
+/// Character profile + one page of their series, keyed by `(id, page)`.
+final characterWorksProvider =
+    FutureProvider.family.autoDispose<PersonWorks, (int, int)>((ref, key) {
+  final (id, page) = key;
+  return ref.watch(mediaRepositoryProvider).characterWorks(id, page: page);
+});
+
+/// Studio profile + one page of its titles, keyed by `(id, page)`.
+final studioWorksProvider =
+    FutureProvider.family.autoDispose<PersonWorks, (int, int)>((ref, key) {
+  final (id, page) = key;
+  return ref.watch(mediaRepositoryProvider).studioWorks(id, page: page);
+});
+
+/// AniList notifications for the signed-in user (empty for guests).
+final notificationsProvider =
+    FutureProvider.autoDispose<List<UserNotification>>((ref) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return const [];
+  final token = ref.read(authRepositoryProvider).accessToken;
+  if (token == null) return const [];
+  return ref.watch(mediaRepositoryProvider).notifications(token: token);
+});
+
+/// Profile header + anime stats for the signed-in user (null for guests).
+final viewerProfileProvider =
+    FutureProvider.autoDispose<ViewerProfile?>((ref) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return null;
+  final token = ref.read(authRepositoryProvider).accessToken;
+  if (token == null) return null;
+  return ref.watch(mediaRepositoryProvider).viewerProfile(token: token);
 });

@@ -10,6 +10,7 @@ import '../../state/settings_controller.dart';
 import '../components/app_logo.dart';
 import '../components/search_field.dart';
 import '../router/app_router.dart';
+import '../screens/settings_dialog.dart';
 
 /// A destination in the top-level navigation.
 class _Destination {
@@ -35,12 +36,6 @@ const List<_Destination> _destinations = [
     Icons.calendar_month_outlined,
     Icons.calendar_month_rounded,
     Routes.calendar,
-  ),
-  _Destination(
-    'My List',
-    Icons.format_list_bulleted_outlined,
-    Icons.format_list_bulleted_rounded,
-    Routes.lists,
   ),
 ];
 
@@ -405,11 +400,6 @@ class _GlassTopBar extends ConsumerWidget {
     final double searchMaxWidth = width >= 1400
         ? 460
         : (width >= 1240 ? 340 : 260);
-    final bool showConnections =
-        isCompact ? width >= 700 : width >= 1300;
-    final bool showAbout = isCompact ? width >= 800 : width >= 1400;
-    final showOverflowMenu =
-        isCompact ? (!showConnections || !showAbout) : (!showConnections || !showAbout);
 
     return ClipRect(
       child: BackdropFilter(
@@ -488,28 +478,21 @@ class _GlassTopBar extends ConsumerWidget {
                         ),
                     ],
                     _ThemeToggle(compact: false),
-                    if (showConnections)
-                      _TopIcon(
-                        tooltip: 'Connections',
-                        icon: Icons.link_outlined,
-                        onPressed: () => context.go(Routes.connections),
-                      ),
+                    _TopIcon(
+                      tooltip: 'Notifications',
+                      icon: Icons.notifications_none_outlined,
+                      onPressed: () => context.go(Routes.notifications),
+                    ),
+                    _TopIcon(
+                      tooltip: 'Profile',
+                      icon: Icons.person_outline,
+                      onPressed: () => context.go(Routes.profile),
+                    ),
                     _TopIcon(
                       tooltip: 'Settings',
                       icon: Icons.settings_outlined,
-                      onPressed: () => context.go(Routes.settings),
+                      onPressed: () => showSettingsDialog(context),
                     ),
-                    if (showAbout)
-                      _TopIcon(
-                        tooltip: 'About',
-                        icon: Icons.info_outline,
-                        onPressed: () => context.go(Routes.about),
-                      ),
-                    if (showOverflowMenu)
-                      _OverflowMenu(
-                        showConnections: !showConnections,
-                        showAbout: !showAbout,
-                      ),
                   ],
                 ),
               ),
@@ -517,54 +500,6 @@ class _GlassTopBar extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _OverflowMenu extends StatelessWidget {
-  const _OverflowMenu({required this.showConnections, required this.showAbout});
-
-  final bool showConnections;
-  final bool showAbout;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!showConnections && !showAbout) return const SizedBox.shrink();
-    return PopupMenuButton<String>(
-      tooltip: 'More',
-      icon: const Icon(Icons.more_horiz),
-      onSelected: (value) {
-        switch (value) {
-          case 'connections':
-            context.go(Routes.connections);
-          case 'about':
-            context.go(Routes.about);
-        }
-      },
-      itemBuilder: (context) => [
-        if (showConnections)
-          const PopupMenuItem(
-            value: 'connections',
-            child: Row(
-              children: [
-                Icon(Icons.link_outlined, size: 18),
-                SizedBox(width: 8),
-                Text('Connections'),
-              ],
-            ),
-          ),
-        if (showAbout)
-          const PopupMenuItem(
-            value: 'about',
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 18),
-                SizedBox(width: 8),
-                Text('About'),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

@@ -182,3 +182,123 @@ query (\$page: Int, \$perPage: Int, \$search: String) {
     }
   }
 }''';
+
+/// Compact media fields for a person's works grid (poster cards only need
+/// these, which keeps two paged connections per request cheap).
+const String kMediaCardSelection = '''
+  id
+  type
+  format
+  status
+  seasonYear
+  episodes
+  chapters
+  averageScore
+  popularity
+  startDate { year month day }
+  title { romaji english native }
+  coverImage { large color }
+''';
+
+/// Staff profile plus the titles they worked on.
+///
+/// Voice actors are linked to media through the characters they voice
+/// (`characterMedia`), while directors/mangaka/composers use `staffMedia`,
+/// so both connections are requested and merged by the mapper.
+const String kStaffWorksQuery = '''
+query (\$id: Int, \$page: Int, \$perPage: Int) {
+  Staff(id: \$id) {
+    id
+    name { full native }
+    image { large }
+    favourites
+    primaryOccupations
+    characterMedia(page: \$page, perPage: \$perPage, sort: POPULARITY_DESC) {
+      pageInfo { currentPage hasNextPage }
+      nodes { $kMediaCardSelection }
+    }
+    staffMedia(page: \$page, perPage: \$perPage, sort: POPULARITY_DESC) {
+      pageInfo { currentPage hasNextPage }
+      nodes { $kMediaCardSelection }
+    }
+  }
+}''';
+
+/// Character profile plus the series they appear in.
+const String kCharacterWorksQuery = '''
+query (\$id: Int, \$page: Int, \$perPage: Int) {
+  Character(id: \$id) {
+    id
+    name { full native }
+    image { large }
+    favourites
+    media(page: \$page, perPage: \$perPage, sort: POPULARITY_DESC) {
+      pageInfo { currentPage hasNextPage }
+      nodes { $kMediaCardSelection }
+    }
+  }
+}''';
+
+/// Studio profile plus the titles it produced (most popular first).
+const String kStudioWorksQuery = '''
+query (\$id: Int, \$page: Int, \$perPage: Int) {
+  Studio(id: \$id) {
+    id
+    name
+    favourites
+    isAnimationStudio
+    media(page: \$page, perPage: \$perPage, sort: POPULARITY_DESC) {
+      pageInfo { currentPage hasNextPage }
+      nodes { $kMediaCardSelection }
+    }
+  }
+}''';
+
+/// The signed-in user's recent notifications about titles: new episodes,
+/// newly added related titles and site-data changes. Requires a token.
+const String kNotificationsQuery = '''
+query (\$perPage: Int) {
+  Page(page: 1, perPage: \$perPage) {
+    notifications(type_in: [AIRING, RELATED_MEDIA_ADDITION, MEDIA_DATA_CHANGE]) {
+      ... on AiringNotification {
+        id
+        type
+        episode
+        createdAt
+        media { $kMediaCardSelection }
+      }
+      ... on RelatedMediaAdditionNotification {
+        id
+        type
+        createdAt
+        media { $kMediaCardSelection }
+      }
+      ... on MediaDataChangeNotification {
+        id
+        type
+        reason
+        createdAt
+        media { $kMediaCardSelection }
+      }
+    }
+  }
+}''';
+
+/// Profile header + anime statistics for the signed-in user.
+const String kViewerProfileQuery = '''
+query {
+  Viewer {
+    id
+    name
+    avatar { large }
+    bannerImage
+    statistics {
+      anime {
+        count
+        episodesWatched
+        meanScore
+        statuses { status count }
+      }
+    }
+  }
+}''';
