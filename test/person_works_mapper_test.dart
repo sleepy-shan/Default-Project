@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sandwich/data/anilist/anilist_mapper.dart';
+import 'package:ikigai_project/data/anilist/anilist_mapper.dart';
 
 Map<String, dynamic> _node(int id, int popularity) => {
   'id': id,
@@ -85,3 +85,4 @@ void studioTests() {
     });
   });
 }
+

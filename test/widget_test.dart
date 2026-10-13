@@ -1,10 +1,10 @@
-import 'package:sandwich/core/theme/app_theme.dart';
-import 'package:sandwich/data/models/media.dart';
-import 'package:sandwich/data/models/media_entry.dart';
-import 'package:sandwich/state/load_state.dart';
-import 'package:sandwich/ui/components/progress_editor.dart';
-import 'package:sandwich/ui/components/state_views.dart';
-import 'package:sandwich/ui/components/status_badge.dart';
+import 'package:ikigai_project/core/theme/app_theme.dart';
+import 'package:ikigai_project/data/models/media.dart';
+import 'package:ikigai_project/data/models/media_entry.dart';
+import 'package:ikigai_project/state/load_state.dart';
+import 'package:ikigai_project/ui/components/progress_editor.dart';
+import 'package:ikigai_project/ui/components/state_views.dart';
+import 'package:ikigai_project/ui/components/status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -126,3 +126,4 @@ void main() {
     expect(find.text('3 / 10 episodes'), findsOne);
   });
 }
+
