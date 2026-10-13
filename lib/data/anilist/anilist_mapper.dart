@@ -1,3 +1,4 @@
+import '../models/account.dart';
 import '../models/airing_schedule.dart';
 import '../models/media.dart';
 import '../models/people.dart';
@@ -312,5 +313,192 @@ abstract final class AniListMapper {
       page: (info['currentPage'] as num?)?.toInt() ?? fallbackPage,
       hasNextPage: info['hasNextPage'] == true,
     );
+  }
+
+  /// Parses `Staff(id:)` into a profile plus the merged list of titles they
+  /// voiced (`characterMedia`) or worked on (`staffMedia`).
+  static PersonWorks? staffWorks(Object? raw, int fallbackPage) {
+    final map = _asMap(raw);
+    if (map == null) return null;
+    final profile = _profile(map, withRole: true);
+    if (profile == null) return null;
+    return PersonWorks(
+      person: profile,
+      works: _mergeConnections(
+        [map['characterMedia'], map['staffMedia']],
+        fallbackPage,
+      ),
+    );
+  }
+
+  /// Parses `Character(id:)` into a profile plus the series they appear in.
+  static PersonWorks? characterWorks(Object? raw, int fallbackPage) {
+    final map = _asMap(raw);
+    if (map == null) return null;
+    final profile = _profile(map);
+    if (profile == null) return null;
+    return PersonWorks(
+      person: profile,
+      works: _mergeConnections([map['media']], fallbackPage),
+    );
+  }
+
+  /// Parses `Studio(id:)` into a profile plus the titles it produced.
+  static PersonWorks? studioWorks(Object? raw, int fallbackPage) {
+    final map = _asMap(raw);
+    if (map == null) return null;
+    final id = (map['id'] as num?)?.toInt();
+    final name = (map['name'] as String?)?.trim() ?? '';
+    if (id == null || name.isEmpty) return null;
+    return PersonWorks(
+      person: PersonProfile(
+        id: id,
+        nameFull: name,
+        favourites: (map['favourites'] as num?)?.toInt() ?? 0,
+        role: map['isAnimationStudio'] == false
+            ? 'Studio'
+            : 'Animation studio',
+      ),
+      works: _mergeConnections([map['media']], fallbackPage),
+    );
+  }
+
+  /// Parses `Page.notifications` (airing / related addition / data change).
+  /// Unknown or media-less notifications are skipped.
+  static List<UserNotification> notifications(Object? raw) {
+    if (raw is! List) return const [];
+    final out = <UserNotification>[];
+    for (final item in raw) {
+      final map = _asMap(item);
+      if (map == null) continue;
+      final id = (map['id'] as num?)?.toInt();
+      final type = map['type'] as String?;
+      if (id == null || type == null) continue;
+      final parsed = mediaList([map['media']]);
+      if (parsed.isEmpty) continue;
+      final media = parsed.first;
+
+      final NotificationKind kind;
+      final String message;
+      switch (type) {
+        case 'AIRING':
+          final episode = (map['episode'] as num?)?.toInt();
+          kind = NotificationKind.airing;
+          message = episode == null
+              ? 'A new episode aired'
+              : 'Episode $episode aired';
+        case 'RELATED_MEDIA_ADDITION':
+          kind = NotificationKind.relatedAddition;
+          message = 'A related title was added';
+        case 'MEDIA_DATA_CHANGE':
+          final reason = (map['reason'] as String?)?.trim() ?? '';
+          kind = NotificationKind.dataChange;
+          message = reason.isEmpty ? 'Details were updated' : reason;
+        default:
+          continue;
+      }
+      final seconds = (map['createdAt'] as num?)?.toInt() ?? 0;
+      out.add(
+        UserNotification(
+          id: id,
+          kind: kind,
+          mediaId: media.id,
+          mediaType: media.type,
+          title: media.title,
+          coverUrl: media.coverUrl,
+          message: message,
+          createdAt: DateTime.fromMillisecondsSinceEpoch(seconds * 1000),
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// Parses `Viewer` (with `statistics.anime`) for the profile page.
+  static ViewerProfile? viewerProfile(Object? raw) {
+    final map = _asMap(raw);
+    if (map == null) return null;
+    final name = (map['name'] as String?)?.trim() ?? '';
+    if (name.isEmpty) return null;
+    final anime = _asMap(_asMap(map['statistics'])?['anime']);
+    var watching = 0;
+    final statuses = anime?['statuses'];
+    if (statuses is List) {
+      for (final entry in statuses) {
+        final status = _asMap(entry);
+        if (status?['status'] == 'CURRENT') {
+          watching = (status?['count'] as num?)?.toInt() ?? 0;
+        }
+      }
+    }
+    final banner = (map['bannerImage'] as String?)?.trim();
+    return ViewerProfile(
+      name: name,
+      avatarUrl: _asMap(map['avatar'])?['large'] as String?,
+      bannerUrl: banner == null || banner.isEmpty ? null : banner,
+      watching: watching,
+      episodesWatched: (anime?['episodesWatched'] as num?)?.toInt(),
+      meanScore: (anime?['meanScore'] as num?)?.toDouble(),
+    );
+  }
+
+  static PersonProfile? _profile(
+    Map<String, dynamic> map, {
+    bool withRole = false,
+  }) {
+    final id = (map['id'] as num?)?.toInt();
+    if (id == null) return null;
+    final name = _asMap(map['name']) ?? const <String, dynamic>{};
+    final full = (name['full'] as String?)?.trim() ?? '';
+    if (full.isEmpty) return null;
+    final image = _asMap(map['image']) ?? const <String, dynamic>{};
+    final role = withRole
+        ? ((map['primaryOccupations'] as List?)
+                  ?.map((e) => e.toString().replaceAll('_', ' '))
+                  .where((e) => e.trim().isNotEmpty)
+                  .join(' · ') ??
+              '')
+        : '';
+    return PersonProfile(
+      id: id,
+      nameFull: full,
+      nameNative: (name['native'] as String?)?.trim(),
+      imageUrl: (image['large'] as String?)?.trim() ?? '',
+      favourites: (map['favourites'] as num?)?.toInt() ?? 0,
+      role: role,
+    );
+  }
+
+  /// Merges one or more `MediaConnection`s: de-duplicates by media id
+  /// (a voice actor can voice several characters in one show) and orders by
+  /// popularity. A next page exists if any connection has one.
+  static MediaPage _mergeConnections(
+    List<Object?> connections,
+    int fallbackPage,
+  ) {
+    final seen = <int>{};
+    final items = <Media>[];
+    var page = fallbackPage;
+    var hasNext = false;
+    for (final raw in connections) {
+      final connection = _asMap(raw);
+      if (connection == null) continue;
+      final info = _asMap(connection['pageInfo']);
+      page = (info?['currentPage'] as num?)?.toInt() ?? page;
+      if (info?['hasNextPage'] == true) hasNext = true;
+      for (final media in mediaList(connection['nodes'])) {
+        if (seen.add(media.id)) items.add(media);
+      }
+    }
+    items.sort((a, b) => (b.popularity ?? 0).compareTo(a.popularity ?? 0));
+    return MediaPage(items: items, page: page, hasNextPage: hasNext);
+  }
+
+  static Map<String, dynamic>? _asMap(Object? raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) {
+      return raw.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return null;
   }
 }

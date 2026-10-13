@@ -123,7 +123,7 @@ class AniListAuthRepository implements AuthRepository {
     if (clean.isEmpty) {
       throw const AppException(
         ErrorKind.validation,
-        'That token is empty — paste the access_token from AniList.',
+        'Received an empty sign-in token — please try again.',
       );
     }
     final viewer = await _fetchViewer(clean);

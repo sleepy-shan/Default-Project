@@ -1,85 +1,8 @@
 {
   "version": "0.2.0",
   "configurations": [
-    {
-      "name": "Flutter Web (Default)",
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart"
-    },
-    {
-      "name": "Flutter Web (Low-Memory Release, Recommended)",
-      // Lowest overhead for normal usage; no automatic Chrome launch.
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "args": [
-        "-d",
-        "web-server",
-        "--release",
-        "--web-port",
-        "8080",
-        "--web-hostname",
-        "127.0.0.1"
-      ]
-    },
-    {
-      "name": "Flutter Web (Low-Memory Debug)",
-      // Hot reload enabled; open the printed URL manually.
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "args": [
-        "-d",
-        "web-server",
-        "--web-port",
-        "8080",
-        "--web-hostname",
-        "127.0.0.1"
-      ]
-    },
-    {
-      "name": "Flutter Web (Standard Debug - Chrome)",
-      // Full debugging experience with Chrome.
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "args": [
-        "-d",
-        "chrome",
-        "--web-port",
-        "8080"
-      ]
-    },
-    {
-      "name": "Flutter Web (Profile)",
-      // Performance profiling; use a physical or supported target.
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "flutterMode": "profile",
-      "args": [
-        "-d",
-        "web-server",
-        "--web-port",
-        "8080",
-        "--web-hostname",
-        "127.0.0.1"
-      ]
-    },
-    {
-      "name": "Flutter Web (Release - Chrome)",
-      // Optimized production-like build, launched in Chrome.
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "flutterMode": "release",
-      "args": [
-        "-d",
-        "chrome",
-        "--web-port",
-        "8080"
-      ]
-    }
+
+    
+    
   ]
 }

@@ -1,3 +1,5 @@
+import 'media.dart';
+
 /// People/search models for the Search tabs (characters, staff, studios).
 ///
 /// AniList exposes these as `Page.characters / staff / studios` with a
@@ -108,4 +110,34 @@ class StudioPage {
     page: 1,
     hasNextPage: false,
   );
+}
+
+/// Header details for a staff member or character page.
+class PersonProfile {
+  const PersonProfile({
+    required this.id,
+    required this.nameFull,
+    this.nameNative,
+    this.imageUrl = '',
+    this.favourites = 0,
+    this.role = '',
+  });
+
+  final int id;
+  final String nameFull;
+  final String? nameNative;
+  final String imageUrl;
+  final int favourites;
+
+  /// Occupations for staff (e.g. "Voice Actor · Vocalist"); empty for
+  /// characters.
+  final String role;
+}
+
+/// A person (staff or character) together with one page of their titles.
+class PersonWorks {
+  const PersonWorks({required this.person, required this.works});
+
+  final PersonProfile person;
+  final MediaPage works;
 }
