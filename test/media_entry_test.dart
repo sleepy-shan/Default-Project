@@ -1,5 +1,5 @@
-import 'package:sandwich/data/models/media.dart';
-import 'package:sandwich/data/models/media_entry.dart';
+import 'package:ikigai_project/data/models/media.dart';
+import 'package:ikigai_project/data/models/media_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -111,3 +111,4 @@ void main() {
     });
   });
 }
+

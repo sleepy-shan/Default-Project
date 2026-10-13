@@ -1,5 +1,5 @@
-import 'package:sandwich/data/anilist/anilist_mapper.dart';
-import 'package:sandwich/data/models/media.dart';
+import 'package:ikigai_project/data/anilist/anilist_mapper.dart';
+import 'package:ikigai_project/data/models/media.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Map<String, dynamic> _sampleMediaJson() => {
@@ -168,3 +168,4 @@ void main() {
     });
   });
 }
+

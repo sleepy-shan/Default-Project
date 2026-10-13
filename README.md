@@ -160,7 +160,7 @@ links (e.g. `/media/anime/154587`).
 
 ## Credits
 
-- [sleepy-shan/Default-Project](https://github.com/sleepy-shan/Default-Project) — project repository
+- [sleepy-shan/Ikigai-Project](https://github.com/sleepy-shan/Ikigai-Project) — project repository
 - [AniList API](https://docs.anilist.co/) — anime & manga metadata + account
 - [Flutter](https://flutter.dev) — app stack
 

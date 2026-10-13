@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sandwich/data/anilist/anilist_mapper.dart';
-import 'package:sandwich/data/models/account.dart';
+import 'package:ikigai_project/data/anilist/anilist_mapper.dart';
+import 'package:ikigai_project/data/models/account.dart';
 
 Map<String, dynamic> _media(int id) => {
   'id': id,
@@ -90,3 +90,4 @@ void main() {
     });
   });
 }
+

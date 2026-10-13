@@ -1,4 +1,4 @@
-import 'package:sandwich/core/utils/formatters.dart';
+import 'package:ikigai_project/core/utils/formatters.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -58,3 +58,4 @@ void main() {
     });
   });
 }
+

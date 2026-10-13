@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sandwich/core/theme/app_theme.dart';
+import 'package:ikigai_project/core/theme/app_theme.dart';
 import 'dart:math' as math;
 
 double _lum(Color c) {
@@ -41,3 +41,4 @@ void main() {
     }
   });
 }
+
