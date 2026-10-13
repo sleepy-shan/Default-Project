@@ -60,6 +60,9 @@ Future<SharedPreferences> _loadPreferences() async {
     return await SharedPreferences.getInstance();
   } on Object catch (error) {
     debugPrint('SharedPreferences unavailable, using in-memory: $error');
+    // Intentional: this is the only way to get an in-memory SharedPreferences
+    // when platform storage is blocked, so the app can still start.
+    // ignore: invalid_use_of_visible_for_testing_member
     SharedPreferences.setMockInitialValues(const {});
     return SharedPreferences.getInstance();
   }
