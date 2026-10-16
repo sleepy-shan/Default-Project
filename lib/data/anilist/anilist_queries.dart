@@ -284,7 +284,7 @@ query (\$perPage: Int) {
   }
 }''';
 
-/// Profile header + anime statistics for the signed-in user.
+/// Profile header, anime statistics and favorites for the signed-in user.
 const String kViewerProfileQuery = '''
 query {
   Viewer {
@@ -298,6 +298,34 @@ query {
         episodesWatched
         meanScore
         statuses { status count }
+      }
+    }
+    favourites {
+      anime(page: 1, perPage: 12) {
+        nodes {
+          id
+          format
+          seasonYear
+          title { romaji english native }
+          coverImage { large }
+        }
+      }
+      manga(page: 1, perPage: 12) {
+        nodes {
+          id
+          format
+          startDate { year }
+          title { romaji english native }
+          coverImage { large }
+        }
+      }
+      characters(page: 1, perPage: 12) {
+        nodes {
+          id
+          name { full }
+          image { large }
+          media(perPage: 1) { nodes { title { romaji english native } } }
+        }
       }
     }
   }

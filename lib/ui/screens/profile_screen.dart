@@ -1,58 +1,155 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_scroll.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/theme/responsive.dart';
 import '../../data/models/account.dart';
+import '../../data/models/media.dart';
+import '../../data/models/media_entry.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../state/media_providers.dart';
 import '../../state/my_lists_controller.dart';
+import '../../state/profile_prefs.dart';
 import '../../state/providers.dart';
 import '../components/app_footer.dart';
+import '../components/profile_banner.dart';
+import '../components/profile_sections.dart';
 import '../router/app_router.dart';
 
-/// Profile page: banner, avatar, name and anime stats.
+/// Profile page: animated banner, avatar, stats, list breakdown, favorites
+/// and recent activity.
 ///
-/// Guests see an empty profile with a Sign in button; signing in with
-/// AniList fills in the avatar, banner and stats. Lists stay in this browser.
+/// Guests get a working profile built from the list stored in this browser;
+/// signing in with AniList swaps in the AniList avatar, banner, statistics
+/// and favorites. Lists themselves stay in this browser.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entryCount = ref.watch(
-      myListsControllerProvider.select((s) => s.entries.length),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    final auth = ref.watch(authStateProvider);
+    final AuthUser? user = switch (auth) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+    final profileAsync = user == null ? null : ref.watch(viewerProfileProvider);
+    final profile = profileAsync?.value;
+
+    final entries = ref.watch(
+      myListsControllerProvider.select((s) => s.entries),
     );
+    final localFavorites = ref.watch(localFavoritesProvider);
+    final bannerPrefs = ref.watch(profileBannerProvider);
+
+    // Which artwork to show: null means the animated komorebi canvas.
+    final String? bannerUrl = switch (bannerPrefs.source) {
+      BannerSource.anilist => profile?.bannerUrl,
+      BannerSource.komorebi => null,
+      BannerSource.custom =>
+        bannerPrefs.hasValidUrl ? bannerPrefs.url!.trim() : null,
+    };
+
+    final stats = _computeStats(profile, entries);
+    final slices = _computeSlices(profile, entries, scheme);
+    final favorites = _mergeFavorites(profile, localFavorites);
+    final recent = ([...entries]
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)))
+        .take(5)
+        .toList(growable: false);
+
     return CustomScrollView(
       physics: const SmoothScrollPhysics(),
       slivers: [
-        const SliverToBoxAdapter(child: _ProfileHeader()),
-        if (entryCount > 0)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Tokens.space16,
-                Tokens.space24,
-                Tokens.space16,
-                0,
-              ),
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: ListTile(
-                  leading: const Icon(Icons.format_list_bulleted),
-                  title: const Text('My list'),
-                  subtitle: Text(
-                    '$entryCount tracked ${entryCount == 1 ? 'title' : 'titles'}',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.go(Routes.lists),
+        SliverToBoxAdapter(
+          child: ResponsiveCenter(
+            maxWidth: 1100,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: Tokens.space16),
+                _ProfileHero(
+                  user: user,
+                  avatarUrl: user?.avatarUrl ?? profile?.avatarUrl,
+                  bannerUrl: bannerUrl,
+                  isCustomLink: bannerPrefs.source == BannerSource.custom,
                 ),
-              ),
+                const SizedBox(height: Tokens.space20),
+                _StatsRow(
+                  stats: stats,
+                  signedIn: user != null,
+                  onSignIn: () => showSignInDialog(context),
+                  onSignOut: () async {
+                    await ref.read(authRepositoryProvider).signOut();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Signed out')),
+                      );
+                    }
+                  },
+                ),
+                if (profileAsync != null && profileAsync.hasError) ...[
+                  const SizedBox(height: Tokens.space12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 16,
+                        color: scheme.error,
+                      ),
+                      const SizedBox(width: Tokens.space8),
+                      Expanded(
+                        child: Text(
+                          'Could not load your AniList stats. Showing what is '
+                          'saved on this device.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.error,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => ref.invalidate(viewerProfileProvider),
+                        child: const Text('Try again'),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: Tokens.space32),
+                ProfileSectionTitle(
+                  title: 'Your list',
+                  caption: user == null
+                      ? 'From the list saved in this browser'
+                      : 'Anime on your AniList account',
+                ),
+                const SizedBox(height: Tokens.space16),
+                StatusRibbon(slices: slices),
+                const SizedBox(height: Tokens.space48),
+                const ProfileSectionTitle(title: 'Favorites'),
+                const SizedBox(height: Tokens.space16),
+                FavoritesShelf(favorites: favorites),
+                const SizedBox(height: Tokens.space48),
+                ProfileSectionTitle(
+                  title: 'Recent activity',
+                  trailing: entries.isEmpty
+                      ? null
+                      : TextButton(
+                          onPressed: () => context.go(Routes.lists),
+                          child: Text('Open full list (${entries.length})'),
+                        ),
+                ),
+                const SizedBox(height: Tokens.space8),
+                RecentActivity(entries: recent),
+              ],
             ),
           ),
+        ),
         const SliverToBoxAdapter(child: SizedBox(height: Tokens.space48)),
         const SliverAppFooter(),
       ],
@@ -60,131 +157,162 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileHeader extends ConsumerWidget {
-  const _ProfileHeader();
+// ---------------------------------------------------------------------------
+// Data shaping
+// ---------------------------------------------------------------------------
+
+class _Stats {
+  const _Stats({this.watching, this.episodes, this.mean});
+
+  final int? watching;
+  final int? episodes;
+
+  /// Mean score on AniList's 0-100 scale.
+  final double? mean;
+}
+
+/// AniList numbers when signed in; otherwise derived from the local list.
+_Stats _computeStats(ViewerProfile? profile, List<MediaEntry> entries) {
+  if (profile != null) {
+    final mean = profile.meanScore;
+    return _Stats(
+      watching: profile.watching,
+      episodes: profile.episodesWatched,
+      mean: mean == null || mean <= 0 ? null : mean,
+    );
+  }
+  final anime = entries.where((e) => e.type == MediaType.anime).toList();
+  final scored = anime.where((e) => (e.score ?? 0) > 0).toList();
+  return _Stats(
+    watching: anime.where((e) => e.status == ListStatus.watching).length,
+    episodes: anime.fold<int>(0, (sum, e) => sum + e.progress),
+    mean: scored.isEmpty
+        ? null
+        : scored.fold<int>(0, (sum, e) => sum + e.score!) /
+              scored.length *
+              10,
+  );
+}
+
+List<StatusSlice> _computeSlices(
+  ViewerProfile? profile,
+  List<MediaEntry> entries,
+  ColorScheme scheme,
+) {
+  if (profile != null) {
+    final c = profile.statusCounts;
+    return [
+      StatusSlice('Watching', Tokens.statusWatching, c['CURRENT'] ?? 0),
+      StatusSlice('Completed', Tokens.statusCompleted, c['COMPLETED'] ?? 0),
+      StatusSlice('Planning', Tokens.statusPlanning, c['PLANNING'] ?? 0),
+      StatusSlice('Paused', Tokens.statusPaused, c['PAUSED'] ?? 0),
+      StatusSlice('Dropped', Tokens.statusDropped, c['DROPPED'] ?? 0),
+      StatusSlice('Rewatching', scheme.tertiary, c['REPEATING'] ?? 0),
+    ];
+  }
+  return [
+    for (final status in ListStatus.values)
+      StatusSlice(
+        status == ListStatus.watching ? 'Watching' : status.label,
+        switch (status) {
+          ListStatus.watching => Tokens.statusWatching,
+          ListStatus.planning => Tokens.statusPlanning,
+          ListStatus.completed => Tokens.statusCompleted,
+          ListStatus.paused => Tokens.statusPaused,
+          ListStatus.dropped => Tokens.statusDropped,
+        },
+        entries.where((e) => e.status == status).length,
+      ),
+  ];
+}
+
+/// AniList favorites first, then on-device hearts not already listed.
+List<ProfileFavorite> _mergeFavorites(
+  ViewerProfile? profile,
+  List<ProfileFavorite> local,
+) {
+  final seen = <String>{};
+  final out = <ProfileFavorite>[];
+  for (final f in [...?profile?.favorites, ...local]) {
+    if (seen.add('${f.kind.name}:${f.id}')) out.add(f);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Hero: banner + avatar + name
+// ---------------------------------------------------------------------------
+
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero({
+    required this.user,
+    required this.avatarUrl,
+    required this.bannerUrl,
+    required this.isCustomLink,
+  });
+
+  final AuthUser? user;
+  final String? avatarUrl;
+  final String? bannerUrl;
+  final bool isCustomLink;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final auth = ref.watch(authStateProvider);
-    final AuthUser? user = switch (auth) {
-      AsyncData(:final value) => value,
-      _ => null,
-    };
-    final ViewerProfile? profile = user == null
-        ? null
-        : ref.watch(viewerProfileProvider).value;
+    final wide = MediaQuery.sizeOf(context).width >= Tokens.breakpointCompact;
+    final avatarSize = wide ? 104.0 : 80.0;
 
-    final name = user?.name ?? 'Profile';
-    final subtitle = user == null
-        ? 'Guest — sign in to sync your library'
-        : 'Signed in with AniList';
-    final avatarUrl = user?.avatarUrl ?? profile?.avatarUrl;
-
-    final nameBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.headlineLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: Tokens.space4),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.primary,
-          ),
-        ),
-      ],
-    );
-
-    final mean = profile?.meanScore;
-    final stats = [
-      _Stat(
-        icon: Icons.schedule_outlined,
-        value: profile == null ? '—' : '${profile.watching}',
-        label: 'Watching',
-      ),
-      _Stat(
-        icon: Icons.star_rounded,
-        value: profile?.episodesWatched == null
-            ? '—'
-            : '${profile!.episodesWatched}',
-        label: 'Episodes',
-      ),
-      _Stat(
-        icon: Icons.favorite_border,
-        value: mean == null || mean <= 0 ? '—' : mean.toStringAsFixed(1),
-        label: 'Mean Score',
-      ),
-    ];
-
-    final Widget action = user == null
-        ? FilledButton.icon(
-            onPressed: () => showSignInDialog(context),
-            icon: const Icon(Icons.login, size: 18),
-            label: const Text('Sign in'),
-          )
-        : OutlinedButton.icon(
-            onPressed: () async {
-              await ref.read(authRepositoryProvider).signOut();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Signed out')),
-                );
-              }
-            },
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Sign out'),
-          );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 980;
-        const pad = Tokens.space16;
-        final avatarSize = wide ? 128.0 : 104.0;
-        final bannerHeight = wide ? 220.0 : 150.0;
-
-        final banner = _Banner(
-          height: bannerHeight,
-          imageUrl: profile?.bannerUrl,
-        );
-        final avatar = _Avatar(size: avatarSize, url: avatarUrl);
-
-        if (wide) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(pad, pad, pad, 0),
-            child: Column(
+    return ProfileBanner(
+      height: wide ? 260 : 210,
+      imageUrl: bannerUrl,
+      isCustomLink: isCustomLink,
+      child: Padding(
+        padding: EdgeInsets.all(wide ? Tokens.space24 : Tokens.space16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                tooltip: 'Change banner',
+                style: IconButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.black.withValues(alpha: 0.32),
+                ),
+                icon: const Icon(Icons.photo_size_select_actual_outlined),
+                onPressed: () => showBannerEditor(context),
+              ),
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                banner,
-                SizedBox(
-                  height: 96,
-                  child: Stack(
-                    clipBehavior: Clip.none,
+                _Avatar(size: avatarSize, url: avatarUrl),
+                const SizedBox(width: Tokens.space16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Positioned(
-                        left: Tokens.space24,
-                        top: -avatarSize / 2,
-                        child: avatar,
+                      Text(
+                        user?.name ?? 'Guest',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                      Positioned.fill(
-                        left: Tokens.space24 + avatarSize + Tokens.space20,
-                        right: Tokens.space24,
-                        child: Row(
-                          children: [
-                            Expanded(child: nameBlock),
-                            for (final stat in stats) ...[
-                              stat,
-                              const SizedBox(width: Tokens.space24),
-                            ],
-                            action,
-                          ],
+                      const SizedBox(height: Tokens.space2),
+                      Text(
+                        user == null
+                            ? 'Sign in to bring your AniList stats and '
+                                  'favorites here'
+                            : 'Signed in with AniList',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
                         ),
                       ),
                     ],
@@ -192,83 +320,6 @@ class _ProfileHeader extends ConsumerWidget {
                 ),
               ],
             ),
-          );
-        }
-
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(pad, pad, pad, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              banner,
-              SizedBox(
-                height: avatarSize / 2 + Tokens.space12,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned(
-                      left: Tokens.space16,
-                      top: -avatarSize / 2,
-                      child: avatar,
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Tokens.space16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    nameBlock,
-                    const SizedBox(height: Tokens.space16),
-                    Wrap(
-                      spacing: Tokens.space24,
-                      runSpacing: Tokens.space12,
-                      children: stats,
-                    ),
-                    const SizedBox(height: Tokens.space16),
-                    action,
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  const _Banner({
-    required this.height,
-    required this.imageUrl,
-  });
-
-  final double height;
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final url = imageUrl;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(Tokens.radiusLg),
-      child: SizedBox(
-        height: height,
-        width: double.infinity,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ColoredBox(color: scheme.surfaceContainerHigh),
-            if (url != null)
-              Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) => const SizedBox(),
-              ),
           ],
         ),
       ),
@@ -296,11 +347,18 @@ class _Avatar extends StatelessWidget {
         ),
       ),
     );
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(Tokens.radiusLg),
-      child: SizedBox(
-        width: size,
-        height: size,
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Tokens.radiusLg),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.9),
+          width: 3,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(Tokens.radiusLg - 3),
         child: image == null || image.isEmpty
             ? placeholder
             : Image.network(
@@ -313,49 +371,120 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({required this.icon, required this.value, required this.label});
+// ---------------------------------------------------------------------------
+// Stats as plain type, not cards
+// ---------------------------------------------------------------------------
 
-  final IconData icon;
-  final String value;
-  final String label;
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({
+    required this.stats,
+    required this.signedIn,
+    required this.onSignIn,
+    required this.onSignOut,
+  });
+
+  final _Stats stats;
+  final bool signedIn;
+  final VoidCallback onSignIn;
+  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      spacing: Tokens.space8,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: scheme.primary.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(Tokens.radiusMd),
-          ),
-          child: Icon(icon, size: 18, color: scheme.primary),
+    final number = NumberFormat.decimalPattern();
+
+    Widget fact(String? value, String label) => Text.rich(
+      TextSpan(
+        text: value ?? '—',
+        style: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+        children: [
+          TextSpan(
+            text: '  $label',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
             ),
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+          ),
+        ],
+      ),
+    );
+
+    final episodes = stats.episodes;
+    String? timeLine;
+    if (episodes != null && episodes > 0) {
+      final hours = episodes * 24 / 60;
+      timeLine = hours < 48
+          ? 'About ${hours.round()} hours of anime, at 24 minutes an episode.'
+          : 'About ${(hours / 24).round()} days of anime, at 24 minutes an '
+                'episode.';
+    }
+
+    final action = signedIn
+        ? OutlinedButton.icon(
+            onPressed: onSignOut,
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Sign out'),
+          )
+        : FilledButton.icon(
+            onPressed: onSignIn,
+            icon: const Icon(Icons.login, size: 18),
+            label: const Text('Sign in'),
+          );
+
+    final facts = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: Tokens.space32,
+          runSpacing: Tokens.space8,
+          children: [
+            fact(
+              stats.watching == null ? null : number.format(stats.watching!),
+              'watching',
+            ),
+            fact(
+              episodes == null ? null : number.format(episodes),
+              'episodes',
+            ),
+            fact(
+              stats.mean?.toStringAsFixed(1),
+              'mean score',
             ),
           ],
         ),
+        if (timeLine != null) ...[
+          const SizedBox(height: Tokens.space8),
+          Text(
+            timeLine,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 720) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: facts),
+              const SizedBox(width: Tokens.space16),
+              action,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [facts, const SizedBox(height: Tokens.space16), action],
+        );
+      },
     );
   }
 }
