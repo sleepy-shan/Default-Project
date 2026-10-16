@@ -35,7 +35,6 @@ jobs:
       - run: >
           flutter build web --release
           --base-href="/${{ github.event.repository.name }}/"
-          --dart-define=ANILIST_CLIENT_ID=${{ secrets.ANILIST_CLIENT_ID }}
 
       # GitHub Pages (Jekyll) ignores files starting with `_` without this,
       # which breaks the Flutter bundle (white screen).

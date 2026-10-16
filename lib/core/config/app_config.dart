@@ -26,10 +26,17 @@ abstract final class AppConfig {
   /// Redirect URL to where the app is served (e.g. `http://localhost:8080/`
   /// for local dev, or your production origin). Then pass it at build time
   /// with `--dart-define=ANILIST_CLIENT_ID=...`.
-  static const String anilistClientId = String.fromEnvironment(
+  static const String _definedClientId = String.fromEnvironment(
     'ANILIST_CLIENT_ID',
-    defaultValue: '53659',
   );
+
+  /// Falls back to the public client ID when the define is missing OR empty.
+  /// (`defaultValue` alone is not enough: `--dart-define=ANILIST_CLIENT_ID=`
+  /// with an unset CI secret defines an empty string, which overrides it.)
+  /// AniList implicit-grant client IDs are public, so this is safe to ship.
+  static const String anilistClientId = _definedClientId == ''
+      ? '53659'
+      : _definedClientId;
 
   /// True when an AniList client ID was supplied at build time.
   static bool get hasAnilistClient => anilistClientId.isNotEmpty;
