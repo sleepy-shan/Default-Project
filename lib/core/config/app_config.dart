@@ -28,7 +28,7 @@ abstract final class AppConfig {
   /// with `--dart-define=ANILIST_CLIENT_ID=...`.
   static const String anilistClientId = String.fromEnvironment(
     'ANILIST_CLIENT_ID',
-    defaultValue: '',
+    defaultValue: '53659',
   );
 
   /// True when an AniList client ID was supplied at build time.
