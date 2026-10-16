@@ -89,5 +89,79 @@ void main() {
       expect(profile.episodesWatched, isNull);
     });
   });
-}
 
+  group('AniListMapper.viewerProfile favorites', () {
+    test('keeps every status count and maps all three favorite kinds', () {
+      final profile = AniListMapper.viewerProfile({
+        'name': 'Aya',
+        'statistics': {
+          'anime': {
+            'statuses': [
+              {'status': 'COMPLETED', 'count': 30},
+              {'status': 'REPEATING', 'count': 2},
+            ],
+          },
+        },
+        'favourites': {
+          'anime': {
+            'nodes': [
+              {
+                'id': 1,
+                'format': 'TV',
+                'seasonYear': 2019,
+                'title': {'romaji': 'Anime One', 'english': null},
+                'coverImage': {'large': 'https://example.com/1.jpg'},
+              },
+            ],
+          },
+          'manga': {
+            'nodes': [
+              {
+                'id': 2,
+                'format': 'MANGA',
+                'startDate': {'year': 2005},
+                'title': {'romaji': 'Manga Two'},
+                'coverImage': {'large': 'https://example.com/2.jpg'},
+              },
+            ],
+          },
+          'characters': {
+            'nodes': [
+              {
+                'id': 3,
+                'name': {'full': 'Char Three'},
+                'image': {'large': 'https://example.com/3.jpg'},
+                'media': {
+                  'nodes': [
+                    {
+                      'title': {'romaji': 'Anime One'},
+                    },
+                  ],
+                },
+              },
+              {'id': 4, 'name': {'full': ''}},
+            ],
+          },
+        },
+      });
+
+      expect(profile!.statusCounts['COMPLETED'], 30);
+      expect(profile.statusCounts['REPEATING'], 2);
+      expect(profile.favorites.map((f) => f.kind), [
+        FavoriteKind.anime,
+        FavoriteKind.manga,
+        FavoriteKind.character,
+      ]);
+      expect(profile.favorites[0].name, 'Anime One');
+      expect(profile.favorites[0].subtitle, 'TV · 2019');
+      expect(profile.favorites[1].subtitle, 'Manga · 2005');
+      expect(profile.favorites[2].subtitle, 'Anime One');
+    });
+
+    test('no favourites block means an empty list', () {
+      final profile = AniListMapper.viewerProfile({'name': 'Aya'});
+      expect(profile!.favorites, isEmpty);
+      expect(profile.statusCounts, isEmpty);
+    });
+  });
+}
