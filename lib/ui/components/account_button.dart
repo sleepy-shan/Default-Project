@@ -6,6 +6,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../state/providers.dart';
 import '../router/app_router.dart';
+import '../screens/settings_dialog.dart';
 import 'sign_in_dialog.dart';
 
 /// Top-bar account control.
@@ -93,6 +94,8 @@ class _UserMenu extends ConsumerWidget {
         switch (value) {
           case 'profile':
             context.go(Routes.profile);
+          case 'settings':
+            showSettingsDialog(context);
           case 'signout':
             _signOut(context, ref);
         }
@@ -142,6 +145,17 @@ class _UserMenu extends ConsumerWidget {
             ],
           ),
         ),
+        const PopupMenuItem<String>(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings_outlined, size: 18),
+              SizedBox(width: Tokens.space12),
+              Text('Settings'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
         const PopupMenuItem<String>(
           value: 'signout',
           child: Row(
