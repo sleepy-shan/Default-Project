@@ -31,21 +31,9 @@ class ProfileBannerController extends Notifier<ProfileBanner> {
     return const ProfileBanner();
   }
 
-  /// Selects a built-in style. Any previously entered image URL is kept so
-  /// the user can switch back to it later.
+  /// Selects one of the built-in banner styles.
   Future<void> setPreset(BannerPreset preset) =>
       _save(state.copyWith(preset: preset));
-
-  /// Sets (or clears, with an empty string) the custom image URL. A non-empty
-  /// URL also switches the active preset to [BannerPreset.image].
-  Future<void> setImageUrl(String url) {
-    final clean = url.trim();
-    return _save(
-      clean.isEmpty
-          ? state.copyWith(imageUrl: null)
-          : ProfileBanner(preset: BannerPreset.image, imageUrl: clean),
-    );
-  }
 
   /// Restores the default (AniList banner, or the aurora for guests).
   Future<void> reset() => _save(const ProfileBanner());

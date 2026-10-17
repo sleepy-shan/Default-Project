@@ -448,6 +448,7 @@ abstract final class AniListMapper {
         }
       }
     }
+    final manga = _asMap(_asMap(map['statistics'])?['manga']);
     // `favourites.anime` is a connection; only its total is needed.
     final favourites = _asMap(_asMap(map['favourites'])?['anime']);
     final favouritesTotal = _asMap(favourites?['pageInfo'])?['total'];
@@ -465,8 +466,111 @@ abstract final class AniListMapper {
       rewatching: rewatching,
       favourites: (favouritesTotal as num?)?.toInt() ?? 0,
       episodesWatched: (anime?['episodesWatched'] as num?)?.toInt(),
+      minutesWatched: (anime?['minutesWatched'] as num?)?.toInt(),
       meanScore: (anime?['meanScore'] as num?)?.toDouble(),
+      mangaCount: (manga?['count'] as num?)?.toInt() ?? 0,
+      chaptersRead: (manga?['chaptersRead'] as num?)?.toInt(),
+      volumesRead: (manga?['volumesRead'] as num?)?.toInt(),
+      mangaMeanScore: (manga?['meanScore'] as num?)?.toDouble(),
+      animeGenres: _genres(anime?['genres']),
+      mangaGenres: _genres(manga?['genres']),
     );
+  }
+
+  /// Reads a `UserStatistics.genres` slice: `[{ genre, count }]`.
+  static List<GenreStat> _genres(Object? raw) {
+    if (raw is! List) return const [];
+    final out = <GenreStat>[];
+    for (final item in raw) {
+      final map = _asMap(item);
+      final genre = (map?['genre'] as String?)?.trim() ?? '';
+      if (genre.isEmpty) continue;
+      out.add(GenreStat(genre: genre, count: (map?['count'] as num?)?.toInt() ?? 0));
+    }
+    return out;
+  }
+
+  /// Flattens a `MediaListCollection` into entries, newest update first.
+  static List<AccountListEntry> accountListEntries(Object? raw) {
+    final map = _asMap(raw);
+    final lists = map?['lists'];
+    if (lists is! List) return const [];
+    final out = <AccountListEntry>[];
+    for (final list in lists) {
+      final entries = _asMap(list)?['entries'];
+      if (entries is! List) continue;
+      for (final item in entries) {
+        final entry = _asMap(item);
+        if (entry == null) continue;
+        final media = _media(entry['media']);
+        if (media == null) continue;
+        final seconds = (entry['updatedAt'] as num?)?.toInt();
+        out.add(
+          AccountListEntry(
+            media: media,
+            status: (entry['status'] as String?) ?? '',
+            progress: (entry['progress'] as num?)?.toInt() ?? 0,
+            progressVolumes: (entry['progressVolumes'] as num?)?.toInt(),
+            score: (entry['score'] as num?)?.toDouble(),
+            updatedAt: seconds == null
+                ? null
+                : DateTime.fromMillisecondsSinceEpoch(seconds * 1000),
+          ),
+        );
+      }
+    }
+    out.sort((a, b) {
+      final at = a.updatedAt?.millisecondsSinceEpoch ?? 0;
+      final bt = b.updatedAt?.millisecondsSinceEpoch ?? 0;
+      return bt.compareTo(at);
+    });
+    return out;
+  }
+
+  /// Parses `User.favourites.anime` into a page of titles.
+  static MediaPage favouriteAnime(Object? raw, int fallbackPage) {
+    final anime = _asMap(_asMap(_asMap(raw)?['favourites'])?['anime']);
+    final info = _asMap(anime?['pageInfo']);
+    return MediaPage(
+      items: mediaList(anime?['nodes']),
+      page: (info?['currentPage'] as num?)?.toInt() ?? fallbackPage,
+      hasNextPage: info?['hasNextPage'] == true,
+    );
+  }
+
+  /// Parses `Page.activities` (list / text / message activities).
+  static List<UserActivity> activities(Object? raw) {
+    final activities = _asMap(raw)?['activities'];
+    if (activities is! List) return const [];
+    final out = <UserActivity>[];
+    for (final item in activities) {
+      final map = _asMap(item);
+      final id = (map?['id'] as num?)?.toInt();
+      if (map == null || id == null) continue;
+      final media = _media(map['media']);
+      final seconds = (map['createdAt'] as num?)?.toInt() ?? 0;
+      out.add(
+        UserActivity(
+          id: id,
+          kind: switch (map['type']) {
+            'TEXT' => ActivityKind.text,
+            'MESSAGE' => ActivityKind.message,
+            _ => ActivityKind.listUpdate,
+          },
+          createdAt: DateTime.fromMillisecondsSinceEpoch(seconds * 1000),
+          mediaId: media?.id,
+          mediaType: media?.type,
+          title: media?.title,
+          coverUrl: media?.coverUrl,
+          status: (map['status'] as String?)?.trim(),
+          progress: int.tryParse('${map['progress'] ?? ''}'),
+          text:
+              (map['text'] as String?)?.trim() ??
+              (map['message'] as String?)?.trim(),
+        ),
+      );
+    }
+    return out;
   }
 
   static PersonProfile? _profile(

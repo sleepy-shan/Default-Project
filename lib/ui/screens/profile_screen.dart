@@ -14,6 +14,7 @@ import '../../state/providers.dart';
 import '../components/app_footer.dart';
 import '../components/profile_banner.dart';
 import '../components/profile_banner_picker.dart';
+import '../components/profile_overview.dart';
 import '../components/profile_stats.dart';
 import '../router/app_router.dart';
 
@@ -42,19 +43,31 @@ class ProfileScreen extends ConsumerWidget {
         SliverToBoxAdapter(
           child: _ProfileHeader(user: user, profile: profile),
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Tokens.space16,
-              Tokens.space24,
-              Tokens.space16,
-              0,
+        const SliverToBoxAdapter(child: SizedBox(height: Tokens.space20)),
+        if (user == null)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: Tokens.space16),
+              child: _GuestCard(),
             ),
-            child: user == null
-                ? const _GuestCard()
-                : ProfileStatsPanel(profile: profile),
+          )
+        else ...[
+          SliverToBoxAdapter(
+            child: _Panel(child: ProfileOverviewPanel(profile: profile)),
           ),
-        ),
+          SliverToBoxAdapter(
+            child: _Panel(child: ProfileStatsPanel(profile: profile)),
+          ),
+          SliverToBoxAdapter(
+            child: _Panel(child: ProfileGenresPanel(profile: profile)),
+          ),
+          const SliverToBoxAdapter(
+            child: _Panel(child: ProfileActivityPanel()),
+          ),
+          const SliverToBoxAdapter(
+            child: _Panel(child: ProfileNotificationsPanel()),
+          ),
+        ],
         if (entryCount > 0)
           SliverToBoxAdapter(
             child: Padding(
@@ -81,6 +94,26 @@ class ProfileScreen extends ConsumerWidget {
         const SliverToBoxAdapter(child: SizedBox(height: Tokens.space48)),
         const SliverAppFooter(),
       ],
+    );
+  }
+}
+
+/// Consistent horizontal padding for the stacked profile panels.
+class _Panel extends StatelessWidget {
+  const _Panel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Tokens.space16,
+        Tokens.space16,
+        Tokens.space16,
+        0,
+      ),
+      child: child,
     );
   }
 }
@@ -198,102 +231,10 @@ class _ProfileHeader extends ConsumerWidget {
                   ),
                   child: nameBlock,
                 ),
-              if (user != null)
-                Padding(
-                  padding: EdgeInsets.only(
-                    top: Tokens.space12,
-                    left: wide ? contentLeft : Tokens.space8,
-                    right: Tokens.space8,
-                  ),
-                  child: _SummaryRow(profile: profile),
-                ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-/// Compact "total / episodes / mean score" chips under the name.
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.profile});
-
-  final ViewerProfile? profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final mean = profile?.meanScore;
-    final items = <Widget>[
-      _SummaryItem(
-        icon: Icons.collections_bookmark_outlined,
-        value: '${profile?.totalCount ?? 0}',
-        label: 'Titles',
-      ),
-      _SummaryItem(
-        icon: Icons.play_circle_outline_rounded,
-        value: '${profile?.episodesWatched ?? 0}',
-        label: 'Episodes',
-      ),
-      _SummaryItem(
-        icon: Icons.star_border_rounded,
-        value: mean == null || mean <= 0 ? '—' : mean.toStringAsFixed(1),
-        label: 'Mean score',
-      ),
-    ];
-    return Wrap(
-      spacing: Tokens.space12,
-      runSpacing: Tokens.space8,
-      children: items,
-    );
-  }
-}
-
-class _SummaryItem extends StatelessWidget {
-  const _SummaryItem({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Tokens.space12,
-        vertical: Tokens.space8,
-      ),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(Tokens.radiusMd),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: scheme.primary),
-          const SizedBox(width: Tokens.space8),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(width: Tokens.space4),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -324,7 +265,6 @@ class _BannerCard extends StatelessWidget {
           children: [
             ProfileBannerView(
               preset: banner.preset,
-              imageUrl: banner.imageUrl,
               fallbackImageUrl: anilistBannerUrl,
             ),
             // Bottom scrim so the overlapping avatar stays readable.

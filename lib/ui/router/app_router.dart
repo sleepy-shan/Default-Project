@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/account.dart';
 import '../../data/models/media.dart';
 import '../layout/app_shell.dart';
 import '../screens/browse_screen.dart';
@@ -10,6 +11,7 @@ import '../screens/home_screen.dart';
 import '../screens/my_lists_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/person_works_screen.dart';
+import '../screens/profile_list_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/media_detail_screen.dart';
 import '../screens/search_screen.dart';
@@ -31,6 +33,11 @@ abstract final class Routes {
 
   static String mediaDetail(MediaType type, int id) =>
       '/media/${type.anilistValue.toLowerCase()}/$id';
+
+  /// One section of the signed-in user's AniList list, e.g.
+  /// `/profile/list/watching`.
+  static String profileList(ProfileSection section) =>
+      '$profile/list/${section.name}';
 
   static String staffWorks(int id) => '$staff/$id';
 
@@ -85,6 +92,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: Routes.search,
             builder: (context, state) => SearchScreen(
               initialQuery: state.uri.queryParameters['q'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/profile/list/:section',
+            builder: (context, state) => ProfileListScreen(
+              section: ProfileSection.fromName(
+                state.pathParameters['section'],
+              ),
             ),
           ),
           GoRoute(

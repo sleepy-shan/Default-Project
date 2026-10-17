@@ -480,7 +480,7 @@ class _GlassTopBar extends ConsumerWidget {
                           onPressed: () => context.push(Routes.search),
                         ),
                     ],
-                    _ThemeToggle(compact: false),
+                    _ThemeToggle(compact: isCompact),
                     _TopIcon(
                       tooltip: 'Notifications',
                       icon: Icons.notifications_none_outlined,
@@ -666,7 +666,12 @@ class _BottomItem extends StatelessWidget {
   }
 }
 
-/// Light/dark theme toggle that follows the current mode.
+/// Light/dark theme control styled like the reference: an outlined pill
+/// holding a small toggle switch and a sun (brightness) glyph.
+///
+/// The switch reads as "light mode" — sliding it toward the sun turns light
+/// mode on; leaving it to the left keeps dark mode. Tapping anywhere on the
+/// pill flips the theme.
 class _ThemeToggle extends ConsumerWidget {
   const _ThemeToggle({required this.compact});
 
@@ -679,22 +684,124 @@ class _ThemeToggle extends ConsumerWidget {
         mode == ThemeMode.dark ||
         (mode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
-    return IconButton(
-      tooltip: isDark ? 'Switch to light theme' : 'Switch to dark theme',
-      icon: AnimatedSwitcher(
-        duration: Tokens.durationMedium,
-        transitionBuilder: (child, animation) => RotationTransition(
-          turns: Tween<double>(begin: 0.6, end: 1.0).animate(animation),
-          child: FadeTransition(opacity: animation, child: child),
-        ),
-        child: Icon(
-          isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-          key: ValueKey(isDark),
-          size: compact ? 20 : null,
+    final isLight = !isDark;
+    final scheme = Theme.of(context).colorScheme;
+
+    void toggle() =>
+        ref.read(settingsControllerProvider.notifier).toggleDark(!isDark);
+
+    final trackHeight = compact ? 18.0 : 24.0;
+    final trackWidth = compact ? 32.0 : 46.0;
+    final knobSize = trackHeight - 6;
+    final gap = compact ? 6.0 : 8.0;
+    final iconSize = compact ? 14.0 : 18.0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Tooltip(
+        message: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: toggle,
+            borderRadius: BorderRadius.circular(Tokens.radiusPill),
+            child: Container(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 5 : 7,
+                compact ? 5 : 6,
+                compact ? 6 : 9,
+                compact ? 5 : 6,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Tokens.radiusPill),
+                border: Border.all(color: scheme.outlineVariant),
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.30),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MiniSwitch(
+                    value: isLight,
+                    width: trackWidth,
+                    height: trackHeight,
+                    knob: knobSize,
+                    trackOn: scheme.primary,
+                    trackOff: scheme.surfaceContainerHighest,
+                    knobOn: scheme.onPrimary,
+                    knobOff: scheme.onSurface,
+                  ),
+                  SizedBox(width: gap),
+                  Icon(
+                    // Sun = the "light mode" end of the switch.
+                    Icons.light_mode_rounded,
+                    size: iconSize,
+                    color: isLight ? scheme.primary : scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-      onPressed: () =>
-          ref.read(settingsControllerProvider.notifier).toggleDark(!isDark),
+    );
+  }
+}
+
+/// Minimal animated toggle: a pill track with a circular knob that slides
+/// between the off (left) and on (right) positions.
+class _MiniSwitch extends StatelessWidget {
+  const _MiniSwitch({
+    required this.value,
+    required this.width,
+    required this.height,
+    required this.knob,
+    required this.trackOn,
+    required this.trackOff,
+    required this.knobOn,
+    required this.knobOff,
+  });
+
+  final bool value;
+  final double width;
+  final double height;
+  final double knob;
+  final Color trackOn;
+  final Color trackOff;
+  final Color knobOn;
+  final Color knobOff;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: Tokens.durationMedium,
+      curve: Tokens.curveSmooth,
+      width: width,
+      height: height,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: value ? trackOn : trackOff,
+        borderRadius: BorderRadius.circular(Tokens.radiusPill),
+      ),
+      child: AnimatedAlign(
+        duration: Tokens.durationMedium,
+        curve: Tokens.curveSmooth,
+        alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          width: knob,
+          height: knob,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: value ? knobOn : knobOff,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

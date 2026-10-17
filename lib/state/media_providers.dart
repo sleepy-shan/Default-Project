@@ -166,3 +166,41 @@ final viewerProfileProvider =
   if (token == null) return null;
   return ref.watch(mediaRepositoryProvider).viewerProfile(token: token);
 });
+
+/// One section of the signed-in user's AniList anime list (empty for guests).
+///
+/// Keyed by [ProfileSection] so the profile page can prefetch nothing and the
+/// list screen fetches exactly the section it is showing.
+final accountListProvider =
+    FutureProvider.family.autoDispose<List<AccountListEntry>, ProfileSection>((
+      ref,
+      section,
+    ) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return const [];
+  final token = ref.read(authRepositoryProvider).accessToken;
+  if (token == null) return const [];
+  final repo = ref.watch(mediaRepositoryProvider);
+  if (section.favouritesOnly) {
+    final page = await repo.favouriteAnime(userId: user.id, token: token);
+    return [
+      for (final media in page.items)
+        AccountListEntry(media: media, status: ''),
+    ];
+  }
+  return repo.accountList(
+    userId: user.id,
+    token: token,
+    status: section.status,
+  );
+});
+
+/// The signed-in user's recent AniList activity (empty for guests).
+final activityProvider =
+    FutureProvider.autoDispose<List<UserActivity>>((ref) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return const [];
+  final token = ref.read(authRepositoryProvider).accessToken;
+  if (token == null) return const [];
+  return ref.watch(mediaRepositoryProvider).activities(userId: user.id, token: token);
+});

@@ -322,7 +322,7 @@ class MediaRepository {
     return AniListMapper.notifications(_pageMap(data['Page'])['notifications']);
   }
 
-  /// Profile header and anime statistics for the signed-in user.
+  /// Profile header and anime/manga statistics for the signed-in user.
   Future<ViewerProfile> viewerProfile({required String token}) async {
     final data = await _client.query(
       kViewerProfileQuery,
@@ -337,6 +337,52 @@ class MediaRepository {
       );
     }
     return result;
+  }
+
+  /// One section of the user's AniList anime list.
+  ///
+  /// [status] is a `MediaListStatus` wire value (for example `CURRENT`); pass
+  /// null for the whole collection. Never cached — the list is private and
+  /// changes as the user tracks titles.
+  Future<List<AccountListEntry>> accountList({
+    required int userId,
+    required String token,
+    String? status,
+  }) async {
+    final data = await _client.query(kMediaListCollectionQuery, {
+      'userId': userId,
+      'type': MediaType.anime.anilistValue,
+      'status': ?status,
+    }, token: token);
+    return AniListMapper.accountListEntries(data['MediaListCollection']);
+  }
+
+  /// The user's favourited anime (separate from their list statuses).
+  Future<MediaPage> favouriteAnime({
+    required int userId,
+    required String token,
+    int page = 1,
+    int perPage = 50,
+  }) async {
+    final data = await _client.query(kFavouriteAnimeQuery, {
+      'userId': userId,
+      'page': page,
+      'perPage': perPage,
+    }, token: token);
+    return AniListMapper.favouriteAnime(data['User'], page);
+  }
+
+  /// The user's recent AniList activity (list updates, posts, messages).
+  Future<List<UserActivity>> activities({
+    required int userId,
+    required String token,
+    int perPage = 12,
+  }) async {
+    final data = await _client.query(kViewerActivityQuery, {
+      'userId': userId,
+      'perPage': perPage,
+    }, token: token);
+    return AniListMapper.activities(data['Page']);
   }
 
   /// Staff profile plus one page of the titles they worked on.

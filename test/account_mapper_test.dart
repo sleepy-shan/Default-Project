@@ -134,6 +134,214 @@ void main() {
       expect(AniListMapper.viewerProfile({'name': ''}), isNull);
       expect(AniListMapper.viewerProfile(null), isNull);
     });
+
+    test('reads manga statistics, minutes watched and top genres', () {
+      final profile = AniListMapper.viewerProfile({
+        'name': 'Aya',
+        'statistics': {
+          'anime': {
+            'count': 10,
+            'episodesWatched': 120,
+            'minutesWatched': 2880,
+            'meanScore': 80,
+            'genres': [
+              {'genre': 'Action', 'count': 6},
+              {'genre': 'Comedy', 'count': 3},
+            ],
+          },
+          'manga': {
+            'count': 4,
+            'chaptersRead': 210,
+            'volumesRead': 22,
+            'meanScore': 75.5,
+            'genres': [
+              {'genre': 'Action', 'count': 2},
+              {'genre': 'Romance', 'count': 1},
+            ],
+          },
+        },
+      });
+
+      expect(profile!.mangaCount, 4);
+      expect(profile.chaptersRead, 210);
+      expect(profile.volumesRead, 22);
+      expect(profile.mangaMeanScore, 75.5);
+      expect(profile.minutesWatched, 2880);
+      expect(profile.daysWatched, 2);
+      // Merged across anime + manga: Action 6+2, then Comedy 3, Romance 1.
+      expect(
+        profile.topGenres.map((g) => g.genre).toList(),
+        ['Action', 'Comedy', 'Romance'],
+      );
+      expect(profile.topGenres.first.count, 8);
+    });
+
+    test('leaves manga metrics null when absent', () {
+      final profile = AniListMapper.viewerProfile({'name': 'Aya'});
+      expect(profile!.mangaCount, 0);
+      expect(profile.chaptersRead, isNull);
+      expect(profile.daysWatched, isNull);
+      expect(profile.topGenres, isEmpty);
+    });
+  });
+
+  group('ProfileSection', () {
+    test('resolves names and counts from the viewer profile', () {
+      const profile = ViewerProfile(
+        name: 'Aya',
+        totalCount: 100,
+        watching: 1,
+        completed: 2,
+        planning: 3,
+        paused: 4,
+        dropped: 5,
+        rewatching: 6,
+        favourites: 7,
+      );
+
+      expect(ProfileSection.fromName('watching'), ProfileSection.watching);
+      expect(ProfileSection.fromName('favourites'), ProfileSection.favourites);
+      expect(ProfileSection.fromName('nope'), ProfileSection.all);
+      expect(ProfileSection.fromName(null), ProfileSection.all);
+      expect(ProfileSection.all.countIn(profile), 100);
+      expect(ProfileSection.completed.countIn(profile), 2);
+      expect(ProfileSection.rewatching.countIn(profile), 6);
+      expect(ProfileSection.favourites.countIn(profile), 7);
+      expect(ProfileSection.all.countIn(null), 0);
+    });
+
+    test('carries AniList status wire values', () {
+      expect(ProfileSection.watching.status, 'CURRENT');
+      expect(ProfileSection.rewatching.status, 'REPEATING');
+      expect(ProfileSection.all.status, isNull);
+      expect(ProfileSection.favourites.favouritesOnly, isTrue);
+      expect(ProfileSection.completed.favouritesOnly, isFalse);
+    });
+  });
+
+  group('AniListMapper.accountListEntries', () {
+    test('flattens status groups, newest update first', () {
+      final entries = AniListMapper.accountListEntries({
+        'lists': [
+          {
+            'name': 'Watching',
+            'entries': [
+              {
+                'status': 'CURRENT',
+                'progress': 5,
+                'updatedAt': 100,
+                'media': _media(1),
+              },
+              {
+                'status': 'CURRENT',
+                'progress': 9,
+                'updatedAt': 300,
+                'media': _media(2),
+              },
+            ],
+          },
+          {
+            'name': 'Completed',
+            'entries': [
+              {
+                'status': 'COMPLETED',
+                'progress': 12,
+                'score': 8.5,
+                'updatedAt': 200,
+                'media': _media(3),
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(entries.map((e) => e.media.id).toList(), [2, 3, 1]);
+      expect(entries.first.progress, 9);
+      expect(entries.first.updatedAt!.millisecondsSinceEpoch, 300000);
+      expect(entries[1].status, 'COMPLETED');
+      expect(entries[1].score, 8.5);
+    });
+
+    test('skips entries without media and tolerates bad payloads', () {
+      expect(AniListMapper.accountListEntries(null), isEmpty);
+      final entries = AniListMapper.accountListEntries({
+        'lists': [
+          {
+            'entries': [
+              {'status': 'CURRENT'},
+              'nope',
+            ],
+          },
+        ],
+      });
+      expect(entries, isEmpty);
+    });
+  });
+
+  group('AniListMapper.favouriteAnime', () {
+    test('reads nodes and page info', () {
+      final page = AniListMapper.favouriteAnime({
+        'favourites': {
+          'anime': {
+            'pageInfo': {'currentPage': 2, 'hasNextPage': true},
+            'nodes': [_media(1), _media(2)],
+          },
+        },
+      }, 1);
+
+      expect(page.items.map((m) => m.id).toList(), [1, 2]);
+      expect(page.page, 2);
+      expect(page.hasNextPage, isTrue);
+    });
+
+    test('is empty without a favourites payload', () {
+      expect(AniListMapper.favouriteAnime(null, 1).items, isEmpty);
+    });
+  });
+
+  group('AniListMapper.activities', () {
+    test('maps list, text and message activities', () {
+      final items = AniListMapper.activities({
+        'activities': [
+          {
+            'id': 1,
+            'type': 'ANIME_LIST',
+            'status': 'CURRENT',
+            'progress': '5',
+            'createdAt': 1700000000,
+            'media': _media(9),
+          },
+          {'id': 2, 'type': 'TEXT', 'text': 'Hello world', 'createdAt': 1700000100},
+          {
+            'id': 3,
+            'type': 'MESSAGE',
+            'message': 'Hi there',
+            'createdAt': 1700000200,
+          },
+        ],
+      });
+
+      expect(items.length, 3);
+      expect(items[0].kind, ActivityKind.listUpdate);
+      expect(items[0].status, 'CURRENT');
+      expect(items[0].progress, 5);
+      expect(items[0].mediaId, 9);
+      expect(items[1].kind, ActivityKind.text);
+      expect(items[1].text, 'Hello world');
+      expect(items[2].kind, ActivityKind.message);
+      expect(items[2].text, 'Hi there');
+    });
+
+    test('tolerates a missing feed and malformed rows', () {
+      expect(AniListMapper.activities(null), isEmpty);
+      final items = AniListMapper.activities({
+        'activities': [
+          {'type': 'TEXT', 'text': 'no id'},
+          <String, dynamic>{},
+        ],
+      });
+      expect(items, isEmpty);
+    });
   });
 }
 
