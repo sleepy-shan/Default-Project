@@ -284,12 +284,13 @@ query (\$perPage: Int) {
   }
 }''';
 
-/// Profile header + anime statistics for the signed-in user.
+/// Profile header + anime/manga statistics for the signed-in user.
 ///
 /// `statistics.anime.statuses` carries one row per list status (CURRENT,
 /// PLANNING, COMPLETED, PAUSED, DROPPED, REPEATING) and `favourites.anime`
 /// gives the favourites total, so the profile can mirror AniList's own
-/// statistics strip.
+/// statistics strip. The `genres(limit:)` slices power the genre overview
+/// and `minutesWatched` is turned into "days watched" by the UI.
 const String kViewerProfileQuery = '''
 query {
   Viewer {
@@ -302,8 +303,90 @@ query {
       anime {
         count
         episodesWatched
+        minutesWatched
         meanScore
         statuses { status count }
+        genres(limit: 10) { genre count }
+      }
+      manga {
+        count
+        chaptersRead
+        volumesRead
+        meanScore
+        genres(limit: 10) { genre count }
+      }
+    }
+  }
+}''';
+
+/// One section of the user's AniList **anime** list.
+///
+/// Pass `status: null` for the full collection ("All"); AniList then returns
+/// every status group and the mapper flattens them. Requires a token because
+/// it reads the authenticated user's private list.
+const String kMediaListCollectionQuery = '''
+query (\$userId: Int, \$type: MediaType, \$status: MediaListStatus) {
+  MediaListCollection(userId: \$userId, type: \$type, status: \$status) {
+    lists {
+      name
+      status
+      entries {
+        id
+        status
+        score
+        progress
+        progressVolumes
+        updatedAt
+        media { $kMediaCardSelection }
+      }
+    }
+  }
+}''';
+
+/// The user's favourited anime (a connection separate from list statuses).
+const String kFavouriteAnimeQuery = '''
+query (\$userId: Int, \$page: Int, \$perPage: Int) {
+  User(id: \$userId) {
+    favourites {
+      anime(page: \$page, perPage: \$perPage) {
+        pageInfo { currentPage hasNextPage }
+        nodes { $kMediaCardSelection }
+      }
+    }
+  }
+}''';
+
+/// The signed-in user's recent activity: list updates, text posts and
+/// messages, newest first. Requires a token.
+const String kViewerActivityQuery = '''
+query (\$userId: Int, \$perPage: Int) {
+  Page(page: 1, perPage: \$perPage) {
+    pageInfo { currentPage hasNextPage }
+    activities(userId: \$userId, sort: ID_DESC) {
+      ... on ListActivity {
+        id
+        type
+        status
+        progress
+        createdAt
+        media {
+          id
+          type
+          title { romaji english native }
+          coverImage { large color }
+        }
+      }
+      ... on TextActivity {
+        id
+        type
+        text
+        createdAt
+      }
+      ... on MessageActivity {
+        id
+        type
+        message
+        createdAt
       }
     }
   }

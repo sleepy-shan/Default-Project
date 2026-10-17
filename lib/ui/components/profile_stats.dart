@@ -1,45 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../data/models/account.dart';
+import '../router/app_router.dart';
 
-/// The Anime buckets the profile shows, mirroring AniList's statistics strip:
-/// each list status plus Favourites, each with its own icon "logo" + colour.
-enum ProfileStat {
-  watching('Watching', Icons.play_circle_fill_rounded, Tokens.statusWatching),
-  completed('Completed', Icons.check_circle_rounded, Tokens.statusCompleted),
-  planning('Planning', Icons.calendar_month_rounded, Tokens.statusPlanning),
-  paused('Paused', Icons.pause_circle_filled_rounded, Tokens.statusPaused),
-  dropped('Dropped', Icons.cancel_rounded, Tokens.statusDropped),
-  rewatching(
-    'Rewatching',
-    Icons.replay_circle_filled_rounded,
-    Tokens.statusRewatching,
-  ),
-  favourites('Favourites', Icons.favorite_rounded, Tokens.statusFavourite);
-
-  const ProfileStat(this.label, this.icon, this.color);
-
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  /// The count for this bucket, or 0 while the profile is still loading.
-  int countIn(ViewerProfile? profile) => switch (this) {
-    ProfileStat.watching => profile?.watching ?? 0,
-    ProfileStat.completed => profile?.completed ?? 0,
-    ProfileStat.planning => profile?.planning ?? 0,
-    ProfileStat.paused => profile?.paused ?? 0,
-    ProfileStat.dropped => profile?.dropped ?? 0,
-    ProfileStat.rewatching => profile?.rewatching ?? 0,
-    ProfileStat.favourites => profile?.favourites ?? 0,
-  };
-}
-
-/// Card listing every [ProfileStat] with its logo and count.
+/// Icon + colour used for a [ProfileSection] row.
 ///
-/// Uses one column on phones and two from tablet width up so the list stays
-/// readable without stretching rows edge to edge.
+/// Colours mirror the AniList status hues (see [Tokens.statusWatching] etc.)
+/// so the strip reads like AniList's own statistics panel.
+({IconData icon, Color color}) _visualFor(
+  ProfileSection section,
+  ColorScheme scheme,
+) => switch (section) {
+  ProfileSection.all => (
+    icon: Icons.collections_bookmark_rounded,
+    color: scheme.primary,
+  ),
+  ProfileSection.watching => (
+    icon: Icons.play_circle_fill_rounded,
+    color: Tokens.statusWatching,
+  ),
+  ProfileSection.completed => (
+    icon: Icons.check_circle_rounded,
+    color: Tokens.statusCompleted,
+  ),
+  ProfileSection.planning => (
+    icon: Icons.calendar_month_rounded,
+    color: Tokens.statusPlanning,
+  ),
+  ProfileSection.paused => (
+    icon: Icons.pause_circle_filled_rounded,
+    color: Tokens.statusPaused,
+  ),
+  ProfileSection.dropped => (
+    icon: Icons.cancel_rounded,
+    color: Tokens.statusDropped,
+  ),
+  ProfileSection.rewatching => (
+    icon: Icons.replay_circle_filled_rounded,
+    color: Tokens.statusRewatching,
+  ),
+  ProfileSection.favourites => (
+    icon: Icons.favorite_rounded,
+    color: Tokens.statusFavourite,
+  ),
+};
+
+/// Card listing every [ProfileSection] with its logo and count.
+///
+/// Each row is tappable and opens that section of the user's AniList list
+/// (`/profile/list/<section>`). Uses one column on phones and two from tablet
+/// width up so the list stays readable without stretching rows edge to edge.
 class ProfileStatsPanel extends StatelessWidget {
   const ProfileStatsPanel({required this.profile, super.key});
 
@@ -58,16 +70,19 @@ class ProfileStatsPanel extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.insights_rounded,
-                  size: 18,
-                  color: scheme.primary,
-                ),
+                Icon(Icons.insights_rounded, size: 18, color: scheme.primary),
                 const SizedBox(width: Tokens.space8),
                 Text(
                   'Anime list',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Tap to browse',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -83,12 +98,12 @@ class ProfileStatsPanel extends StatelessWidget {
                   spacing: gap,
                   runSpacing: Tokens.space4,
                   children: [
-                    for (final stat in ProfileStat.values)
+                    for (final section in ProfileSection.values)
                       SizedBox(
                         width: itemWidth,
                         child: _StatRow(
-                          stat: stat,
-                          count: stat.countIn(profile),
+                          section: section,
+                          count: section.countIn(profile),
                         ),
                       ),
                   ],
@@ -103,56 +118,72 @@ class ProfileStatsPanel extends StatelessWidget {
 }
 
 class _StatRow extends StatelessWidget {
-  const _StatRow({required this.stat, required this.count});
+  const _StatRow({required this.section, required this.count});
 
-  final ProfileStat stat;
+  final ProfileSection section;
   final int count;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final visual = _visualFor(section, scheme);
     // Light mode: saturated hues (esp. paused yellow) read poorly on a tinted
-    // chip, so darken for contrast. Dark mode keeps the vivid hue.
+    // chip, so darken for contrast. Dark mode keeps the vivid hue. The
+    // theme-primary "All" row already contrasts, so it is left alone.
     final isDark = theme.brightness == Brightness.dark;
-    final base = stat.color;
-    final color = isDark
+    final base = visual.color;
+    final color = (isDark || section == ProfileSection.all)
         ? base
         : HSLColor.fromColor(base)
               .withLightness(
                 (HSLColor.fromColor(base).lightness - 0.18).clamp(0.0, 1.0),
               )
               .toColor();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Tokens.space4),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(Tokens.radiusMd),
-              border: Border.all(color: color.withValues(alpha: 0.35)),
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(Tokens.radiusMd),
+      onTap: () => context.go(Routes.profileList(section)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: Tokens.space4,
+          horizontal: Tokens.space4,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(Tokens.radiusMd),
+                border: Border.all(color: color.withValues(alpha: 0.35)),
+              ),
+              child: Icon(visual.icon, size: 18, color: color),
             ),
-            child: Icon(stat.icon, size: 18, color: color),
-          ),
-          const SizedBox(width: Tokens.space12),
-          Expanded(
-            child: Text(
-              stat.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium,
+            const SizedBox(width: Tokens.space12),
+            Expanded(
+              child: Text(
+                section.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium,
+              ),
             ),
-          ),
-          const SizedBox(width: Tokens.space8),
-          Text(
-            '$count',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+            const SizedBox(width: Tokens.space8),
+            Text(
+              '$count',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-        ],
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: scheme.onSurfaceVariant,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,7 +5,9 @@ void main() {
   group('BannerPreset.fromName', () {
     test('resolves known preset names', () {
       expect(BannerPreset.fromName('starfield'), BannerPreset.starfield);
-      expect(BannerPreset.fromName('image'), BannerPreset.image);
+      expect(BannerPreset.fromName('sakura'), BannerPreset.sakura);
+      expect(BannerPreset.fromName('neon'), BannerPreset.neon);
+      expect(BannerPreset.fromName('ocean'), BannerPreset.ocean);
     });
 
     test('falls back for null, empty or unknown names', () {
@@ -17,64 +19,45 @@ void main() {
         BannerPreset.grid,
       );
     });
+
+    test('migrates the removed image preset to auto', () {
+      expect(BannerPreset.fromName('image'), BannerPreset.auto);
+    });
   });
 
   group('ProfileBanner', () {
     test('round-trips through JSON', () {
-      const banner = ProfileBanner(
-        preset: BannerPreset.image,
-        imageUrl: 'https://example.com/banner.png',
-      );
+      const banner = ProfileBanner(preset: BannerPreset.ocean);
       final restored = ProfileBanner.fromJson(banner.toJson());
       expect(restored, banner);
-      expect(restored.preset, BannerPreset.image);
-      expect(restored.imageUrl, 'https://example.com/banner.png');
-    });
-
-    test('omits a blank image URL from JSON', () {
-      const banner = ProfileBanner(preset: BannerPreset.auto, imageUrl: '  ');
-      expect(banner.toJson().containsKey('image_url'), isFalse);
+      expect(restored.preset, BannerPreset.ocean);
+      expect(banner.toJson(), {'preset': 'ocean'});
     });
 
     test('defaults to auto when decoding an empty map', () {
       final restored = ProfileBanner.fromJson(const {});
       expect(restored.preset, BannerPreset.auto);
-      expect(restored.imageUrl, isNull);
     });
 
-    test('hasImage is true only for a non-blank image preset', () {
+    test('copyWith changes only the preset', () {
+      const banner = ProfileBanner(preset: BannerPreset.ocean);
       expect(
-        const ProfileBanner(
-          preset: BannerPreset.image,
-          imageUrl: 'https://example.com/a.png',
-        ).hasImage,
-        isTrue,
+        banner.copyWith(preset: BannerPreset.sunset).preset,
+        BannerPreset.sunset,
       );
-      expect(
-        const ProfileBanner(
-          preset: BannerPreset.auto,
-          imageUrl: 'https://example.com/a.png',
-        ).hasImage,
-        isFalse,
-      );
-      expect(
-        const ProfileBanner(preset: BannerPreset.image, imageUrl: '  ').hasImage,
-        isFalse,
-      );
+      expect(banner.copyWith().preset, BannerPreset.ocean);
     });
 
-    test('copyWith can set and clear the image URL', () {
-      const banner = ProfileBanner(
-        preset: BannerPreset.image,
-        imageUrl: 'https://example.com/a.png',
+    test('equality is based on the preset', () {
+      expect(
+        const ProfileBanner(preset: BannerPreset.sakura),
+        const ProfileBanner(preset: BannerPreset.sakura),
       );
-      final cleared = banner.copyWith(imageUrl: null);
-      expect(cleared.imageUrl, isNull);
-      expect(cleared.preset, BannerPreset.image);
-
-      final kept = banner.copyWith(preset: BannerPreset.aurora);
-      expect(kept.preset, BannerPreset.aurora);
-      expect(kept.imageUrl, 'https://example.com/a.png');
+      expect(
+        const ProfileBanner(preset: BannerPreset.sakura) ==
+            const ProfileBanner(preset: BannerPreset.neon),
+        isFalse,
+      );
     });
   });
 }
