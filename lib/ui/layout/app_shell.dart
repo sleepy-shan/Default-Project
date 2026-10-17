@@ -486,14 +486,8 @@ class _GlassTopBar extends ConsumerWidget {
                       icon: Icons.notifications_none_outlined,
                       onPressed: () => context.go(Routes.notifications),
                     ),
-                    // Phones have no room for a separate Profile tab: the
-                    // account button opens the profile from its menu there.
-                    if (!isCompact)
-                      _TopIcon(
-                        tooltip: 'Profile',
-                        icon: Icons.person_outline,
-                        onPressed: () => context.go(Routes.profile),
-                      ),
+                    // Profile lives in the account menu (avatar / Sign in),
+                    // so no separate header icon is needed.
                     AccountButton(iconOnly: accountIconOnly),
                     _TopIcon(
                       tooltip: 'Settings',
