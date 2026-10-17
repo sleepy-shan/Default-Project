@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../state/settings_controller.dart';
+import '../components/account_button.dart';
 import '../components/app_logo.dart';
 import '../components/search_field.dart';
 import '../router/app_router.dart';
@@ -397,6 +398,8 @@ class _GlassTopBar extends ConsumerWidget {
     // 1240+: full tabs + wider search.
     final bool iconOnlyNav = width < 1240;
     final bool showWordmark = isCompact || width >= 1120;
+    // The account button keeps its label only when there is clear room.
+    final bool accountIconOnly = width < 1240;
     final double searchMaxWidth = width >= 1400
         ? 460
         : (width >= 1240 ? 340 : 260);
@@ -483,11 +486,15 @@ class _GlassTopBar extends ConsumerWidget {
                       icon: Icons.notifications_none_outlined,
                       onPressed: () => context.go(Routes.notifications),
                     ),
-                    _TopIcon(
-                      tooltip: 'Profile',
-                      icon: Icons.person_outline,
-                      onPressed: () => context.go(Routes.profile),
-                    ),
+                    // Phones have no room for a separate Profile tab: the
+                    // account button opens the profile from its menu there.
+                    if (!isCompact)
+                      _TopIcon(
+                        tooltip: 'Profile',
+                        icon: Icons.person_outline,
+                        onPressed: () => context.go(Routes.profile),
+                      ),
+                    AccountButton(iconOnly: accountIconOnly),
                     _TopIcon(
                       tooltip: 'Settings',
                       icon: Icons.settings_outlined,

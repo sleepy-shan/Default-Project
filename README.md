@@ -22,7 +22,6 @@ throughout.
 | Track | Add to list, change status, episode/chapter progress stepper, 0–10 score, remove |
 | My List | Filter by status, sort, quick "+1", reset/mark completed, remove with confirmation |
 | Calendar | Weekly AniList airing schedule with day grouping and week navigation |
-| Profile | Animated banner (AniList image/GIF, pasted link, or built-in "komorebi" canvas), name + stats, list status ribbon, favorites shelf (AniList favorites + on-device hearts), recent activity; works for guests too |
 | Connections | AniList login status + service connection overview |
 | Settings | System/Light/Dark theme (persisted), account info, clear-list action |
 | About | Version, credits and links |
