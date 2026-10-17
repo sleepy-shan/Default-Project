@@ -414,91 +414,59 @@ abstract final class AniListMapper {
     return out;
   }
 
-  /// Parses `Viewer` (statistics + favorites) for the profile page.
+  /// Parses `Viewer` (with `statistics.anime`) for the profile page.
   static ViewerProfile? viewerProfile(Object? raw) {
     final map = _asMap(raw);
     if (map == null) return null;
     final name = (map['name'] as String?)?.trim() ?? '';
     if (name.isEmpty) return null;
     final anime = _asMap(_asMap(map['statistics'])?['anime']);
-    final counts = <String, int>{};
+    var watching = 0;
+    var completed = 0;
+    var planning = 0;
+    var paused = 0;
+    var dropped = 0;
+    var rewatching = 0;
     final statuses = anime?['statuses'];
     if (statuses is List) {
       for (final entry in statuses) {
         final status = _asMap(entry);
-        final key = status?['status'];
-        if (key is String) {
-          counts[key] = (status?['count'] as num?)?.toInt() ?? 0;
+        final count = (status?['count'] as num?)?.toInt() ?? 0;
+        switch (status?['status']) {
+          case 'CURRENT':
+            watching = count;
+          case 'COMPLETED':
+            completed = count;
+          case 'PLANNING':
+            planning = count;
+          case 'PAUSED':
+            paused = count;
+          case 'DROPPED':
+            dropped = count;
+          case 'REPEATING':
+            rewatching = count;
         }
       }
     }
+    // `favourites.anime` is a connection; only its total is needed.
+    final favourites = _asMap(_asMap(map['favourites'])?['anime']);
+    final favouritesTotal = _asMap(favourites?['pageInfo'])?['total'];
     final banner = (map['bannerImage'] as String?)?.trim();
     return ViewerProfile(
       name: name,
       avatarUrl: _asMap(map['avatar'])?['large'] as String?,
       bannerUrl: banner == null || banner.isEmpty ? null : banner,
-      watching: counts['CURRENT'] ?? 0,
+      totalCount: (anime?['count'] as num?)?.toInt() ?? 0,
+      watching: watching,
+      completed: completed,
+      planning: planning,
+      paused: paused,
+      dropped: dropped,
+      rewatching: rewatching,
+      favourites: (favouritesTotal as num?)?.toInt() ?? 0,
       episodesWatched: (anime?['episodesWatched'] as num?)?.toInt(),
       meanScore: (anime?['meanScore'] as num?)?.toDouble(),
-      statusCounts: counts,
-      favorites: _favorites(_asMap(map['favourites'])),
     );
-  }
-
-  static List<ProfileFavorite> _favorites(Map<String, dynamic>? raw) {
-    if (raw == null) return const [];
-    final out = <ProfileFavorite>[];
-
-    List<Map<String, dynamic>> nodes(String key) {
-      final list = _asMap(raw[key])?['nodes'];
-      if (list is! List) return const [];
-      return list.map(_asMap).whereType<Map<String, dynamic>>().toList();
-    }
-
-    for (final kind in const [FavoriteKind.anime, FavoriteKind.manga]) {
-      for (final node in nodes(kind.name)) {
-        final id = (node['id'] as num?)?.toInt();
-        if (id == null) continue;
-        final year =
-            (node['seasonYear'] as num?)?.toInt() ??
-            (_asMap(node['startDate'])?['year'] as num?)?.toInt();
-        final format = MediaFormat.fromWire(node['format'] as String?);
-        final subtitle = [
-          if (format != MediaFormat.unknown) format.label,
-          if (year != null) '$year',
-        ].join(' · ');
-        out.add(
-          ProfileFavorite(
-            id: id,
-            kind: kind,
-            name: _title(_asMap(node['title']) ?? const {}),
-            imageUrl: _coverUrl(_asMap(node['coverImage'])),
-            subtitle: subtitle.isEmpty ? null : subtitle,
-          ),
-        );
-      }
-    }
-
-    for (final node in nodes('characters')) {
-      final id = (node['id'] as num?)?.toInt();
-      final full = (_asMap(node['name'])?['full'] as String?)?.trim();
-      if (id == null || full == null || full.isEmpty) continue;
-      final series = _asMap(node['media'])?['nodes'];
-      String? from;
-      if (series is List && series.isNotEmpty) {
-        from = _title(_asMap(_asMap(series.first)?['title']) ?? const {});
-      }
-      out.add(
-        ProfileFavorite(
-          id: id,
-          kind: FavoriteKind.character,
-          name: full,
-          imageUrl: _asMap(node['image'])?['large'] as String?,
-          subtitle: from,
-        ),
-      );
-    }
-    return out;
   }
 
   static PersonProfile? _profile(

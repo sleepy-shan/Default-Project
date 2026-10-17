@@ -10,7 +10,6 @@ import '../../data/models/media.dart';
 import '../../data/models/media_entry.dart';
 import '../../state/media_providers.dart';
 import '../../state/my_lists_controller.dart';
-import '../../state/profile_prefs.dart';
 import '../components/poster_card.dart';
 import '../components/progress_editor.dart';
 import '../components/rails.dart';
@@ -144,23 +143,14 @@ class _DetailBody extends ConsumerWidget {
 }
 
 /// Collapsing banner: parallaxes away, title pins on collapse.
-class _BannerAppBar extends ConsumerWidget {
+class _BannerAppBar extends StatelessWidget {
   const _BannerAppBar({required this.media});
 
   final Media media;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isFavorite = ref.watch(
-      localFavoritesProvider.select(
-        (list) => list.any(
-          (f) =>
-              f.id == media.id &&
-              f.kind == LocalFavoritesController.kindOf(media.type),
-        ),
-      ),
-    );
     final hasBanner =
         media.bannerUrl != null && media.bannerUrl!.isNotEmpty;
     return SliverAppBar(
@@ -168,29 +158,6 @@ class _BannerAppBar extends ConsumerWidget {
       pinned: true,
       stretch: true,
       backgroundColor: theme.scaffoldBackgroundColor,
-      actions: [
-        IconButton(
-          tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
-          isSelected: isFavorite,
-          icon: const Icon(Icons.favorite_border_rounded),
-          selectedIcon: const Icon(Icons.favorite_rounded, color: Tokens.like),
-          onPressed: () {
-            ref.read(localFavoritesProvider.notifier).toggle(media);
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isFavorite
-                        ? 'Removed from favorites'
-                        : 'Added to favorites on your profile',
-                  ),
-                ),
-              );
-          },
-        ),
-        const SizedBox(width: Tokens.space8),
-      ],
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
           media.title,
@@ -202,7 +169,7 @@ class _BannerAppBar extends ConsumerWidget {
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        titlePadding: const EdgeInsets.only(left: 52, bottom: 14, right: 64),
+        titlePadding: const EdgeInsets.only(left: 52, bottom: 14, right: 16),
         background: Stack(
           fit: StackFit.expand,
           children: [

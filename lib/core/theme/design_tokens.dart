@@ -79,12 +79,15 @@ abstract final class Tokens {
   static const Color warning = Color(0xFFF4A62A);
   static const Color danger = Color(0xFFD64545);
 
-  // Status colors used for list-status chips
+  // Status colors used for list-status chips. The profile statistics strip
+  // reuses these for its "logo" badges, plus the two AniList-only buckets.
   static const Color statusWatching = Color(0xFF2D9CDB);
   static const Color statusPlanning = Color(0xFF9B51E0);
   static const Color statusCompleted = Color(0xFF21A179);
   static const Color statusPaused = Color(0xFFF2C94C);
   static const Color statusDropped = Color(0xFFEB5757);
+  static const Color statusRewatching = Color(0xFF3DB4F2);
+  static const Color statusFavourite = like;
 
   // ---------------------------------------------------------------------
   // Signature gradients / surfaces (the "unique" look)

@@ -83,85 +83,57 @@ void main() {
       expect(profile.bannerUrl, 'https://example.com/b.png');
     });
 
-    test('tolerates missing statistics', () {
-      final profile = AniListMapper.viewerProfile({'name': 'Aya'});
-      expect(profile!.watching, 0);
-      expect(profile.episodesWatched, isNull);
-    });
-  });
-
-  group('AniListMapper.viewerProfile favorites', () {
-    test('keeps every status count and maps all three favorite kinds', () {
+    test('maps every list-status bucket and the favourites total', () {
       final profile = AniListMapper.viewerProfile({
         'name': 'Aya',
-        'statistics': {
-          'anime': {
-            'statuses': [
-              {'status': 'COMPLETED', 'count': 30},
-              {'status': 'REPEATING', 'count': 2},
-            ],
-          },
-        },
         'favourites': {
           'anime': {
-            'nodes': [
-              {
-                'id': 1,
-                'format': 'TV',
-                'seasonYear': 2019,
-                'title': {'romaji': 'Anime One', 'english': null},
-                'coverImage': {'large': 'https://example.com/1.jpg'},
-              },
-            ],
+            'pageInfo': {'total': 17},
           },
-          'manga': {
-            'nodes': [
-              {
-                'id': 2,
-                'format': 'MANGA',
-                'startDate': {'year': 2005},
-                'title': {'romaji': 'Manga Two'},
-                'coverImage': {'large': 'https://example.com/2.jpg'},
-              },
-            ],
-          },
-          'characters': {
-            'nodes': [
-              {
-                'id': 3,
-                'name': {'full': 'Char Three'},
-                'image': {'large': 'https://example.com/3.jpg'},
-                'media': {
-                  'nodes': [
-                    {
-                      'title': {'romaji': 'Anime One'},
-                    },
-                  ],
-                },
-              },
-              {'id': 4, 'name': {'full': ''}},
+        },
+        'statistics': {
+          'anime': {
+            'count': 120,
+            'statuses': [
+              {'status': 'CURRENT', 'count': 4},
+              {'status': 'COMPLETED', 'count': 60},
+              {'status': 'PLANNING', 'count': 40},
+              {'status': 'PAUSED', 'count': 3},
+              {'status': 'DROPPED', 'count': 8},
+              {'status': 'REPEATING', 'count': 5},
             ],
           },
         },
       });
 
-      expect(profile!.statusCounts['COMPLETED'], 30);
-      expect(profile.statusCounts['REPEATING'], 2);
-      expect(profile.favorites.map((f) => f.kind), [
-        FavoriteKind.anime,
-        FavoriteKind.manga,
-        FavoriteKind.character,
-      ]);
-      expect(profile.favorites[0].name, 'Anime One');
-      expect(profile.favorites[0].subtitle, 'TV · 2019');
-      expect(profile.favorites[1].subtitle, 'Manga · 2005');
-      expect(profile.favorites[2].subtitle, 'Anime One');
+      expect(profile!.totalCount, 120);
+      expect(profile.watching, 4);
+      expect(profile.completed, 60);
+      expect(profile.planning, 40);
+      expect(profile.paused, 3);
+      expect(profile.dropped, 8);
+      expect(profile.rewatching, 5);
+      expect(profile.favourites, 17);
     });
 
-    test('no favourites block means an empty list', () {
+    test('tolerates missing statistics', () {
       final profile = AniListMapper.viewerProfile({'name': 'Aya'});
-      expect(profile!.favorites, isEmpty);
-      expect(profile.statusCounts, isEmpty);
+      expect(profile!.watching, 0);
+      expect(profile.completed, 0);
+      expect(profile.rewatching, 0);
+      expect(profile.favourites, 0);
+      expect(profile.episodesWatched, isNull);
+    });
+
+    test('drops a blank banner image and requires a name', () {
+      final blank = AniListMapper.viewerProfile({
+        'name': 'Aya',
+        'bannerImage': '   ',
+      });
+      expect(blank!.bannerUrl, isNull);
+      expect(AniListMapper.viewerProfile({'name': ''}), isNull);
+      expect(AniListMapper.viewerProfile(null), isNull);
     });
   });
 }
+
